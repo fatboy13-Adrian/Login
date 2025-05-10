@@ -24,43 +24,49 @@ public class AuthController {
 
     // Endpoint for user authentication (login)
     @PostMapping("/login")
-public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO authRequestDTO) {
-    try {
-        // Map DTO to Entity
-        AuthRequest authRequest = new AuthRequest();
-        authRequest.setUsername(authRequestDTO.getUsername());
-        authRequest.setPassword(authRequestDTO.getPassword());
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO authRequestDTO) {
+        try {
+            // Map DTO to Entity
+            AuthRequest authRequest = new AuthRequest();
+            authRequest.setUsername(authRequestDTO.getUsername());
+            authRequest.setPassword(authRequestDTO.getPassword());
 
-        // Call service method with Entity to get the AuthResponseDTO
-        AuthResponseDTO authResponseDTO = authService.authenticate(authRequest);
+            // Call service method with Entity to get the AuthResponseDTO
+            AuthResponseDTO authResponseDTO = authService.authenticate(authRequest);
 
-        return ResponseEntity.ok(authResponseDTO); // Return 200 OK with the response
-    } catch (Exception e) {
-        // Log the error and send an appropriate response
-        AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
-                .token(null)
-                .message("Authentication failed")
-                .build();
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(authResponseDTO);
+            return ResponseEntity.ok(authResponseDTO); // Return 200 OK with the response
+        } catch (Exception e) {
+            // Log the error and send an appropriate response
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                    .token(null)
+                    .message("Authentication failed")
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(authResponseDTO); // Return 401 Unauthorized
+        }
     }
-}
 
     // Endpoint to refresh the JWT token
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponseDTO> refreshToken(@RequestBody String oldToken) {
         try {
+            // Refresh the token using the service
             AuthResponse authResponse = authService.refreshToken(oldToken);
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                     .token(authResponse.getToken())
                     .message("Token refreshed successfully")
                     .build();
-            return ResponseEntity.ok(authResponseDTO);
+            return ResponseEntity.ok(authResponseDTO); // Return 200 OK with the new token
         } catch (Exception e) {
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                     .token(null)
                     .message("Token refresh failed")
                     .build();
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(authResponseDTO);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(authResponseDTO); // Return 403 Forbidden
         }
+    }
+
+    @GetMapping("/protected")
+    public ResponseEntity<String> getProtectedResource() {
+        return ResponseEntity.ok("This is a protected resource.");
     }
 }

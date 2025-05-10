@@ -12,7 +12,6 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import com.user.login.Repository.UserRepository;
 
 @Configuration
@@ -36,8 +35,8 @@ public class SecurityConfig {
         return username -> userRepository.findByUsername(username)
             .map(user -> User.builder()
                 .username(user.getUsername())
-                .password(user.getPassword()) // already encoded in DB
-                .roles(user.getRole().name()) // assumes enum like SALES_CLERK
+                .password(user.getPassword())
+                .roles(user.getRole().name())  // This should return roles like "CUSTOMER"
                 .build())
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
@@ -52,25 +51,16 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                // Allow access to authentication endpoints without authentication
-                .requestMatchers("/auth/login", "/auth/refresh", "/error", "/register", "/users").permitAll()
-
-                // Role-based access for other endpoints
-                .requestMatchers("/orders/**", "/products/**").hasAnyRole("SALES_CLERK", "WAREHOUSE_SUPERVISOR")
-                .requestMatchers("/get-user", "/update-user", "/carts/**", "/get-category", "/get-categories", "/get-order", "/get-payment", "/get-product").hasRole("CUSTOMER")
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                
-                // All other requests must be authenticated
-                .anyRequest().authenticated()
-            );
-
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf().disable() // Disable CSRF for API usage
+        .authorizeHttpRequests()
+            .requestMatchers("/auth/protected").hasAnyRole("CUSTOMER", "ADMIN") // Allow both roles
+            .anyRequest().permitAll()
+        .and()
         // Add JWT filter before UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+}
 }
