@@ -14,13 +14,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
-    private final PasswordEncoder passwordEncoder; 
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public AuthService(UserRepository userRepository, JwtUtils jwtUtils, PasswordEncoder passwordEncoder) {
@@ -45,8 +46,10 @@ public class AuthService {
     // Authenticate using JWT
     public Authentication authenticateWithJwt(String token) {
         if (jwtUtils.isTokenValid(token)) {
-            String username = jwtUtils.parseToken(token).getSubject();
-            List<SimpleGrantedAuthority> authorities = getAuthoritiesFromToken(token);
+            String username = jwtUtils.parseToken(token).getBody().getSubject();  // Fixed here
+            List<SimpleGrantedAuthority> authorities = jwtUtils.getRolesFromToken(token).stream()  // Convert roles to authorities
+                    .map(SimpleGrantedAuthority::new)
+                    .collect(Collectors.toList());
             JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(username, authorities, token);
             SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
             return jwtAuthenticationToken;
@@ -54,16 +57,10 @@ public class AuthService {
         throw new RuntimeException("Invalid or expired token");
     }
 
-    // Extract roles/authorities from the token
-    private List<SimpleGrantedAuthority> getAuthoritiesFromToken(String token) {
-        List<String> roles = jwtUtils.getRolesFromToken(token);  // ensure this method exists and works
-        return roles.stream().map(SimpleGrantedAuthority::new).toList();
-    }
-
     // Refresh JWT token
     public AuthResponse refreshToken(String oldToken) {
         if (jwtUtils.isTokenValid(oldToken)) {
-            String username = jwtUtils.parseToken(oldToken).getSubject();
+            String username = jwtUtils.parseToken(oldToken).getBody().getSubject();  // Fixed here
             String newToken = jwtUtils.generateToken(username);
             return AuthResponse.builder().token(newToken).build();
         }

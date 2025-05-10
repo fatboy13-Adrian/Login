@@ -1,4 +1,7 @@
 package com.user.login.Controller;
+import com.user.login.DTO.Auth.AuthRequestDTO;
+import com.user.login.DTO.Auth.AuthResponseDTO;
+import com.user.login.Entity.Auth.AuthRequest;
 import com.user.login.Entity.Auth.AuthResponse;
 import com.user.login.Entity.Auth.RefreshTokenRequest;
 import com.user.login.Service.AuthService;
@@ -7,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -19,28 +23,37 @@ public class AuthController {
     }
 
     // Endpoint for user authentication (login)
-    // @PostMapping("/login")
-    // public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest) {
-    //     try {
-    //         AuthResponse authResponse = authService.authenticate(authRequest);
-    //         return ResponseEntity.ok(authResponse); // Return 200 OK with the response
-    //     } catch (Exception e) {
-    //         // Log the error and send an appropriate response
-    //         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-    //                 .body(new AuthResponse("Authentication failed", null));
-    //     }
-    // }
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO authRequestDTO) {
+        try {
+            // Map DTO to Entity
+            AuthRequest authRequest = new AuthRequest();
+            authRequest.setUsername(authRequestDTO.getUsername());
+            authRequest.setPassword(authRequestDTO.getPassword());
+
+            // Call service method with Entity
+            AuthResponse authResponse = authService.authenticate(authRequest);
+
+            // Map Entity to DTO response
+            AuthResponseDTO authResponseDTO = new AuthResponseDTO(authResponse.getToken(), "Authentication successful");
+            return ResponseEntity.ok(authResponseDTO); // Return 200 OK with the response
+        } catch (Exception e) {
+            // Log the error and send an appropriate response
+            AuthResponseDTO authResponseDTO = new AuthResponseDTO(null, "Authentication failed");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(authResponseDTO);
+        }
+    }
 
     // Endpoint to refresh the JWT token
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public ResponseEntity<AuthResponseDTO> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
         try {
             AuthResponse authResponse = authService.refreshToken(refreshTokenRequest.getOldToken());
-            return ResponseEntity.ok(authResponse); // Return the new token in the response
+            AuthResponseDTO authResponseDTO = new AuthResponseDTO(authResponse.getToken(), "Token refreshed successfully");
+            return ResponseEntity.ok(authResponseDTO);
         } catch (Exception e) {
-            // Log the error and return an appropriate response if token refresh fails
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new AuthResponse("Token refresh failed", null));
+            AuthResponseDTO authResponseDTO = new AuthResponseDTO(null, "Token refresh failed");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(authResponseDTO);
         }
     }
 }

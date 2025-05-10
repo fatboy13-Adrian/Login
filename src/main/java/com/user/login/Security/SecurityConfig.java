@@ -1,7 +1,5 @@
 package com.user.login.Security;
 
-import com.user.login.Repository.UserRepository;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,15 +11,19 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.user.login.Repository.UserRepository;
 
 @Configuration
 public class SecurityConfig {
 
     private final UserRepository userRepository;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(UserRepository userRepository) {
+    public SecurityConfig(UserRepository userRepository, JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userRepository = userRepository;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -54,51 +56,21 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/error", "/register", "/users").permitAll()
+                // Allow access to authentication endpoints without authentication
+                .requestMatchers("/auth/login", "/auth/refresh", "/error", "/register", "/users").permitAll()
+
+                // Role-based access for other endpoints
                 .requestMatchers("/orders/**", "/products/**").hasAnyRole("SALES_CLERK", "WAREHOUSE_SUPERVISOR")
                 .requestMatchers("/get-user", "/update-user", "/carts/**", "/get-category", "/get-categories", "/get-order", "/get-payment", "/get-product").hasRole("CUSTOMER")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                
+                // All other requests must be authenticated
                 .anyRequest().authenticated()
-            )
-            .formLogin(form -> form
-                .permitAll()
-                .successHandler(authenticationSuccessHandler()) // <-- Custom Success Handler here
-                .failureUrl("/login?error=true")
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .permitAll()
-            )
-            .sessionManagement(session -> session
-                .invalidSessionUrl("/login")
-                .sessionFixation().migrateSession()
             );
 
+        // Add JWT filter before UsernamePasswordAuthenticationFilter
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
-    }
-
-    // Custom Authentication Success Handler
-    @Bean
-    public AuthenticationSuccessHandler authenticationSuccessHandler() {
-        return (request, response, authentication) -> {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("application/json");
-
-            // Generate the welcome message based on the user's role
-            String message = authentication.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN")) ? "Welcome to admin home page" :
-                authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_WAREHOUSE_SUPERVISOR")) ? "Welcome to warehouse home page" :
-                    authentication.getAuthorities().stream()
-                        .anyMatch(auth -> auth.getAuthority().equals("ROLE_SALES_CLERK")) ? "Welcome to sales clerk home page" :
-                        "Welcome to customer home page";
-
-            // Send the message as a JSON response
-            response.getWriter().write("{\"message\": \"" + message + "\"}");
-            response.getWriter().flush();
-        };
     }
 }

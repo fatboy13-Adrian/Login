@@ -10,6 +10,7 @@ import lombok.Setter;               //Generates setters for all fields
 @Builder                            //Provides a builder pattern for creating instances of this class
 @AllArgsConstructor                 //Generates a constructor with all fields
 @NoArgsConstructor                  //Generates a no-argument constructor
-public class AuthResponse {
-    private String token, message;
+public class AuthRequestDTO {
+    private String username;        //Username for authentication
+    private String password;        //Password for authentication
 }

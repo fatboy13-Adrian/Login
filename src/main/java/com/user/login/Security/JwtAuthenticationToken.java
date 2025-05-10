@@ -1,38 +1,30 @@
 package com.user.login.Security;
 
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Collection;
+import java.util.List;
 
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
-    private final Object principal;  // The username of the authenticated user
-    private final String jwtToken;   // The JWT token (may not be used directly in most cases)
+    private final String principal;  // Typically the username (subject of the token)
+    private final String credentials;  // The JWT token itself
 
-    // Constructor for unauthenticated JwtAuthenticationToken (used when receiving the token)
-    public JwtAuthenticationToken(String username) {
-        super(null);  // No authorities yet
-        this.principal = username;
-        this.jwtToken = null;
-        setAuthenticated(false);  // Not authenticated yet
-    }
-
-    // Constructor for authenticated JwtAuthenticationToken (used after token validation)
-    public JwtAuthenticationToken(Object principal, Collection<? extends GrantedAuthority> authorities, String jwtToken) {
-        super(authorities);  // Authorities should be set for authenticated user
-        this.principal = principal;
-        this.jwtToken = jwtToken;
+    // Constructor with username, authorities (roles), and token
+    public JwtAuthenticationToken(String principal, List<SimpleGrantedAuthority> authorities, String credentials) {
+        super(authorities);  // Pass the authorities (roles) to the superclass
+        this.principal = principal;  // Set the principal (username)
+        this.credentials = credentials;  // Set the credentials (JWT token)
         setAuthenticated(true);  // Mark as authenticated
     }
 
     @Override
     public Object getCredentials() {
-        return jwtToken;  // Return JWT if necessary (e.g., for logging or other purposes)
+        return credentials;  // Return the JWT token
     }
 
     @Override
     public Object getPrincipal() {
-        return principal;  // Return username (principal) as the authenticated user
+        return principal;  // Return the principal (username)
     }
 }
