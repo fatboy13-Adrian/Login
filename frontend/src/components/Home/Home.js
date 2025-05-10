@@ -1,11 +1,10 @@
-// src/components/Home/Home.js
+import { useLocation } from 'react-router-dom';
 
 const Home = () => {
-  return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-    </div>
-  );
+  const location = useLocation();
+  const { role } = location.state || { role: 'user' }; // fallback default
+
+  return <h1>Welcome to {role} home page</h1>;
 };
 
 export default Home;

@@ -12,17 +12,22 @@ const LoginForm = () => {
 
   // Submit handler with async error handling
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(''); // Reset any previous error message
+  e.preventDefault();
+  setError('');
 
-    try {
-      const userData = await loginUser(username, password);
-      login(userData);
-      navigate('/home');
-    } catch (err) {
-      setError('Invalid credentials, please try again.');
-    }
-  };
+  try {
+    const userData = await loginUser(username, password);
+    login(userData);
+    console.log(userData);
+
+    // extract role from roleMessage string
+    const role = userData.roleMessage.split(':')[1].trim(); // e.g., "ADMIN"
+
+    navigate('/home', { state: { role } });
+  } catch (err) {
+    setError('Invalid credentials, please try again.');
+  }
+};
 
   return (
     <div>

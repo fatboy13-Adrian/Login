@@ -28,12 +28,12 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('token', userData.token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
-  };
-
+  setUser(userData); // userData must contain role
+  setIsAuthenticated(true);
+  localStorage.setItem('token', userData.token);
+  localStorage.setItem('role', userData.role);  // store role
+  axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
+};
   // Logout function
   const logout = () => {
     setUser(null);
