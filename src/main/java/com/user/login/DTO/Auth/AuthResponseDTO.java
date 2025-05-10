@@ -11,5 +11,5 @@ import lombok.Setter;               //Generates setters for all fields
 @AllArgsConstructor                 //Generates a constructor with all fields
 @NoArgsConstructor                  //Generates a no-argument constructor
 public class AuthResponseDTO {
-    private String token, message;
+    private String token, message, roleMessage;
 }

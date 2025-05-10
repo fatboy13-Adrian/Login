@@ -1,10 +1,12 @@
-HELP.md
+# Ignore all target directories
 target/
+
+# Exclude specific target directories you want to track (optional)
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+### STS ### 
 .apt_generated
 .classpath
 .factorypath
