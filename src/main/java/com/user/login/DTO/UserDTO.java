@@ -14,7 +14,7 @@ import lombok.*;
 @Builder
 public class UserDTO {
 
-    private Long customerId; // Usually not validated during creation, but included for completeness
+    private Long userId; // Usually not validated during creation, but included for completeness
 
     @NotBlank(message = "Username is required")
     @Size(min = 4, max = 20, message = "Username must be between 4 and 20 characters")

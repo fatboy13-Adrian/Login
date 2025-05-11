@@ -14,8 +14,8 @@ import com.user.login.Enum.Role;
 public class User {
     @Id                                                                                 //Marks this field as the primary key in the database
     @GeneratedValue(strategy = GenerationType.IDENTITY)                                 //Automatically generates the primary key using the IDENTITY strategy
-    @Column(name = "customerId")                                                        //Specifies the column name for the primary key in the database
-    private Long customerId;                                                            //Unique identifier for the customer
+    @Column(name = "userId")                                                        //Specifies the column name for the primary key in the database
+    private Long userId;                                                            //Unique identifier for the customer
 
     @Column(nullable = false, unique = true)                                            //Marks the column as not nullable and unique in the database
     private String username;                                                            //Username of the customer
