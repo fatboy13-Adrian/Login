@@ -1,16 +1,15 @@
-// src/Utils/PrivateRoute.js
+import {Navigate} from 'react-router-dom';      //Import Navigate to redirect users
+import {useAuth} from '../context/AuthContext'; //Import custom hook to get authentication status
 
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+//Function component that wraps private routes
+function PrivateRoute({children}) 
+{
+  const {isAuthenticated} = useAuth();  //Get the authentication status from context
 
-const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  if(!isAuthenticated)                  //If the user is not authenticated
+    return <Navigate to="/login"/>;     //Redirect to login page
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+  return children;                      //If authenticated, render the children components (protected route)
+}
 
-  return children;  // If authenticated, render the children components
-};
-
-export default PrivateRoute;
+export default PrivateRoute;            //Export the component for use in other parts of the app
