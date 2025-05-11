@@ -1,15 +1,13 @@
-package com.user.login.Mapper;
+package com.user.login.Mapper;          //Package declaration
+import com.user.login.DTO.UserDTO;      //Importing UserDTO for mapping
+import com.user.login.Entity.User;      //Importing User entity for mapping
+import org.mapstruct.Mapper;            //Importing MapStruct Mapper annotation
+import org.mapstruct.factory.Mappers;   //Importing Mappers factory for creating instances
 
-import com.user.login.DTO.UserDTO;
-import com.user.login.Entity.User;
-import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
-
-@Mapper(componentModel = "spring")
-public interface UserMapper {
-
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
-
-    UserDTO toDTO(User user);
-    User toEntity(UserDTO userDTO);
+@Mapper(componentModel = "spring")      //Marks this interface as a MapStruct mapper for Spring context
+public interface UserMapper 
+{
+    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);  //Provides a static instance of the mapper
+    UserDTO toDTO(User user);                                       //Converts User entity to UserDTO
+    User toEntity(UserDTO userDTO);                                 //Converts UserDTO to User entity
 }

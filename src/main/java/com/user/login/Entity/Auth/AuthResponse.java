@@ -1,4 +1,4 @@
-package com.user.login.Entity.Auth;
+package com.user.login.Entity.Auth; //Declares the package that this class belongs to
 import lombok.AllArgsConstructor;   //Generates a constructor with all arguments
 import lombok.Builder;              //Generates a builder for object creation
 import lombok.Getter;               //Generates getters for all fields
@@ -10,6 +10,7 @@ import lombok.Setter;               //Generates setters for all fields
 @Builder                            //Provides a builder pattern for creating instances of this class
 @AllArgsConstructor                 //Generates a constructor with all fields
 @NoArgsConstructor                  //Generates a no-argument constructorpackage com.user.login.Entity;
-public class AuthResponse {
+public class AuthResponse 
+{
     private String token, message, roleMessage;
 }
