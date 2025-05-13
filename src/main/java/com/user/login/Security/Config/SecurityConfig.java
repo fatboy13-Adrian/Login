@@ -53,14 +53,17 @@ public class SecurityConfig
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception 
     {
         http
-            .csrf().disable()                                                                                   //Disable CSRF protection (useful for API-based applications)
-            .authorizeHttpRequests()                                                                            //Start request authorization configuration
-                .requestMatchers("/auth/protected")
-                .hasAnyRole("CUSTOMER", "ADMIN", "WAREHOUSE_SUPERVISOR", "SALES_CLERK")                //Restrict access to this endpoint to CUSTOMER and ADMIN roles         
-                .anyRequest().permitAll()                                                                       //Permit all other requests
+            .csrf().disable()// 🔐 Disable CSRF protection (usually disabled for stateless REST APIs using JWT)
+            .authorizeHttpRequests()// 🔒 Start configuring request authorization
+                .requestMatchers("/h2-console/**").permitAll()                                      //Allow unrestricted access to the H2 database console
+                .requestMatchers("/auth/protected")                                                 //Only users with specified roles can access this protected endpoint
+                    .hasAnyRole("CUSTOMER", "ADMIN", "WAREHOUSE_SUPERVISOR", "SALES_CLERK")
+                .anyRequest().permitAll()                                                                       //Allow all other requests without authentication (adjust as needed)
             .and()
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);  //Add JWT filter before the authentication filter
+            .headers().frameOptions().disable()                                                                 //Allow the H2 database console to be embedded in an iframe (prevents frame-related errors)
+            .and()
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);  //Add your custom JWT authentication filter *before* Spring’s default username/password filter
 
-        return http.build();                                                                                    //Return the built security filter chain
+        return http.build();    //Build and return the configured SecurityFilterChain
     }
 }

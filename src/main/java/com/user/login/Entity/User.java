@@ -3,13 +3,13 @@ import jakarta.persistence.*;       //JPA annotations
 import lombok.*;                    //Lombok annotations for boilerplate code
 import com.user.login.Enum.Role;    //Importing Role enum
 
-@Entity                     //Marks as a JPA entity
-@Table(name = "customers")  //Specifies table name
-@Getter                     //Generates getter methods
-@Setter                     //Generates setter methods
-@NoArgsConstructor          //Generates no-args constructor
-@AllArgsConstructor         //Generates all-args constructor
-@Builder                    //Enables builder pattern
+@Entity                             //Marks as a JPA entity
+@Table(name = "users")              //Specifies table name
+@Getter                             //Generates getter methods
+@Setter                             //Generates setter methods
+@NoArgsConstructor                  //Generates no-args constructor
+@AllArgsConstructor                 //Generates all-args constructor
+@Builder                            //Enables builder pattern
 public class User 
 {
     @Id                                                 //Marks as primary key
