@@ -47,8 +47,7 @@ public class AuthService
         String welcomeMessage = "Welcome, " + user.getUsername() + "! Your role is: " + user.getRole().name();
 
         //Return AuthResponseDTO containing the token, success message, and role-based welcome message
-        return AuthResponseDTO.builder().token(token).message("Authentication successful")
-        .roleMessage(welcomeMessage).build();
+        return AuthResponseDTO.builder().token(token).message("Authentication successful").roleMessage(welcomeMessage).build();
     }
 
     //Authenticate using JWT token
@@ -60,8 +59,7 @@ public class AuthService
             String username = jwtUtils.getUsernameFromToken(token); //Extract the username from the token
 
             //Extract the roles from the token and convert them to authorities
-            List<SimpleGrantedAuthority> authorities = jwtUtils.getRolesFromToken(token).stream().map(SimpleGrantedAuthority::new)
-            .collect(Collectors.toList());
+            List<SimpleGrantedAuthority> authorities = jwtUtils.getRolesFromToken(token).stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
 
             //Create a custom JwtAuthenticationToken with the extracted information
             JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(username, authorities, token);
@@ -69,7 +67,7 @@ public class AuthService
             //Set the created authentication token into the security context
             SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
 
-            return jwtAuthenticationToken;  //Return the authentication token
+            return jwtAuthenticationToken;                              //Return the authentication token
         }
         throw new RuntimeException("Invalid or expired token"); //Throw error if token is invalid or expired
     }
@@ -80,7 +78,6 @@ public class AuthService
         //Check if the provided old JWT token is valid
         if(jwtUtils.isTokenValid(oldToken)) 
         {
-            
             String username = jwtUtils.getUsernameFromToken(oldToken);      //Extract username and roles from the old token
             List<String> roles = jwtUtils.getRolesFromToken(oldToken);
             String newToken = jwtUtils.generateToken(username, roles);      //Generate a new token with the same username and roles

@@ -57,7 +57,7 @@ public class DataLoader implements CommandLineRunner
             System.out.println("Initial data loaded successfully!");
         } 
         
-        else    //Skip loading if users exist
-            System.out.println("Data already exists, skipping load...");    
+        else    
+            System.out.println("Data already exists, skipping load...");    //Skip loading if users exist        
     }
 }

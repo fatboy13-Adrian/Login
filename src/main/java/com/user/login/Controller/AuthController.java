@@ -77,7 +77,6 @@ public class AuthController
     @GetMapping("/protected")
     public ResponseEntity<String> getProtectedResource() 
     {
-        //Returns a simple success message with HTTP 200 OK
-        return ResponseEntity.ok("This is a protected resource.");
+        return ResponseEntity.ok("This is a protected resource.");  //Returns a simple success message with HTTP 200 OK
     }
 }
