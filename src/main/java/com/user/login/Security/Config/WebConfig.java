@@ -1,4 +1,4 @@
-package com.user.login.Security.Config;                                            //Package declaration
+package com.user.login.Security.Config;                                     //Package declaration
 import org.springframework.context.annotation.Configuration;                //Marks this as a configuration class
 import org.springframework.web.servlet.config.annotation.CorsRegistry;      //Used to define CORS mappings
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;  //Interface to customize Spring MVC config

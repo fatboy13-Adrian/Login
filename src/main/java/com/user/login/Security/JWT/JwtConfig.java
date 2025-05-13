@@ -1,4 +1,4 @@
-package com.user.login.Security.JWT;                                //Package declaration
+package com.user.login.Security.JWT;                            //Package declaration
 import org.springframework.beans.factory.annotation.Value;      //Annotation to inject property values
 import org.springframework.context.annotation.Configuration;    //Marks class as a configuration component
 

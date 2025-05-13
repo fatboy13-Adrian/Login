@@ -1,4 +1,4 @@
-package com.user.login.Security.JWT;                                                        //Security package
+package com.user.login.Security.JWT;                                                    //Security package
 import jakarta.servlet.FilterChain;                                                     //FilterChain for request filtering
 import jakarta.servlet.ServletException;                                                //ServletException for handling servlet errors
 import jakarta.servlet.http.HttpServletRequest;                                         //HttpServletRequest to access request data
@@ -57,9 +57,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
     { 
         String headerAuth = request.getHeader("Authorization"); //Get Authorization header
 
-        //Check for Bearer prefix
+        //Check for Bearer prefix and return token
         if(headerAuth != null && headerAuth.startsWith("Bearer")) 
-            return headerAuth.substring(7); //Return token
+            return headerAuth.substring(7);
         
         return null;    //No token found
     }

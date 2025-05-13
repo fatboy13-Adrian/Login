@@ -41,11 +41,10 @@ public class AuthController
             return ResponseEntity.ok(authResponseDTO);
         } 
         
-        catch (Exception e) 
+        catch(Exception e) 
         {
             //If any exception occurs during authentication, return a failure message and 401 Unauthorized
-            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(null)
-            .message("Authentication failed").build();
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(null).message("Authentication failed").build();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(authResponseDTO);
         }
     }
@@ -60,8 +59,7 @@ public class AuthController
             AuthResponse authResponse = authService.refreshToken(oldToken);
 
             //Build a response DTO from the refreshed token
-            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(authResponse.getToken())
-            .message("Token refreshed successfully").build();
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(authResponse.getToken()).message("Token refreshed successfully").build();
 
             //Return HTTP 200 OK with the new token in response
             return ResponseEntity.ok(authResponseDTO);
@@ -70,8 +68,7 @@ public class AuthController
         catch(Exception e) 
         {
             //If token refresh fails, return a 403 Forbidden response with appropriate message
-            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(null)
-            .message("Token refresh failed").build();
+            AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().token(null).message("Token refresh failed").build();
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(authResponseDTO);
         }
     }

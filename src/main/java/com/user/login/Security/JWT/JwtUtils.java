@@ -1,4 +1,4 @@
-package com.user.login.Security.JWT;                    //Package declaration
+package com.user.login.Security.JWT;                //Package declaration
 import io.jsonwebtoken.Claims;                      //JWT claims (payload)
 import io.jsonwebtoken.Jwts;                        //JWT builder/parser
 import io.jsonwebtoken.SignatureAlgorithm;          //Signing algorithms
@@ -53,7 +53,7 @@ public class JwtUtils
     {
         Claims claims = parseToken(token);                                              //Get claims
         Object rolesObject = claims.get("roles");                                   //Get roles claim
-        if (rolesObject instanceof List<?>) 
+        if(rolesObject instanceof List<?>) 
             return ((List<?>) rolesObject).stream().map(Object::toString) .toList();    //Convert to string list
 
         throw new RuntimeException("Roles claim is missing or invalid");        //Handle error

@@ -12,5 +12,5 @@ import lombok.Setter;               //Generates setters for all fields
 @NoArgsConstructor                  //Generates a no-argument constructorpackage com.user.login.Entity;
 public class AuthResponse 
 {
-    private String token, message, roleMessage;
+    private String token, message, roleMessage; //token, message and role message for response
 }

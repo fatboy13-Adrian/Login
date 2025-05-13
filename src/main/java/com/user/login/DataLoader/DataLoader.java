@@ -32,7 +32,11 @@ public class DataLoader implements CommandLineRunner
             .homeAddress("Admin Street, Admin City").password(passwordEncoder.encode("admin123"))
             .role(Role.ADMIN).build();
 
-            User customer = User.builder().username("customer").email("customer@example.com")
+            User customer01 = User.builder().username("customer01").email("customer01@example.com")
+            .homeAddress("Customer Lane, Customer Town").password(passwordEncoder.encode("customer123"))
+            .role(Role.CUSTOMER).build();
+
+            User customer02 = User.builder().username("customer02").email("customer02@example.com")
             .homeAddress("Customer Lane, Customer Town").password(passwordEncoder.encode("customer123"))
             .role(Role.CUSTOMER).build();
 
@@ -44,15 +48,16 @@ public class DataLoader implements CommandLineRunner
             .homeAddress("Warehouse Street, Supervisor City").password(passwordEncoder.encode("warehouse123"))
             .role(Role.WAREHOUSE_SUPERVISOR).build();
 
-            userRepository.save(admin);                 //Save admin to DB
-            userRepository.save(customer);              //Save customer to DB
-            userRepository.save(salesClerk);            //Save sales clerk to DB
-            userRepository.save(warehouseSupervisor);   //Save warehouse supervisor to DB
-
-            System.out.println("Initial data loaded successfully!");        //Confirm success
+            //Save all user data into DB and print confim success message
+            userRepository.save(admin);                 
+            userRepository.save(customer01);            
+            userRepository.save(customer02);            
+            userRepository.save(salesClerk);            
+            userRepository.save(warehouseSupervisor);
+            System.out.println("Initial data loaded successfully!");
         } 
         
-        else
-            System.out.println("Data already exists, skipping load...");    //Skip loading if users exist
+        else    //Skip loading if users exist
+            System.out.println("Data already exists, skipping load...");    
     }
 }

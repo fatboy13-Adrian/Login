@@ -1,4 +1,4 @@
-package com.user.login.Security.JWT;                                                //Package declaration
+package com.user.login.Security.JWT;                                            //Package declaration
 import org.springframework.security.authentication.AbstractAuthenticationToken; //Base class for auth tokens
 import org.springframework.security.core.authority.SimpleGrantedAuthority;      //Represents user roles
 import java.util.List;                                                          //List interface
@@ -15,7 +15,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken
         super(authorities);                     //Calls superclass with roles
         this.principal = principal;             //Sets username
         this.credentials = credentials;         //Sets token
-        setAuthenticated(true);     //Marks as authenticated
+        setAuthenticated(true); //Marks as authenticated
     }
 
     @Override

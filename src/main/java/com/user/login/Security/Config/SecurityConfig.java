@@ -1,4 +1,4 @@
-package com.user.login.Security.Config;                                                                            //Package declaration
+package com.user.login.Security.Config;                                                                     //Package declaration
 import org.springframework.context.annotation.Bean;                                                         //To declare beans in Spring
 import org.springframework.context.annotation.Configuration;                                                //Marks this class as a configuration class
 import org.springframework.security.authentication.AuthenticationManager;                                   //Authentication manager for auth flow
@@ -61,6 +61,6 @@ public class SecurityConfig
             .and()
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);  //Add JWT filter before the authentication filter
 
-        return http.build(); //Return the built security filter chain
+        return http.build();                                                                                    //Return the built security filter chain
     }
 }

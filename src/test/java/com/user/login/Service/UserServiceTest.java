@@ -1,148 +1,200 @@
-package com.user.login.Service;                         //Declare the package for the UserService test class
-import com.user.login.DTO.UserDTO;                      //Import Data Transfer Object for User
-import com.user.login.Entity.User;                      //Import Entity class for User
-import com.user.login.Enum.Role;                        //Import Role enum used for user roles
-import com.user.login.Exception.UserNotFoundException;  //Import custom exception for user not found cases
-import com.user.login.Mapper.UserMapper;                //Import mapper for converting between User and UserDTO
-import com.user.login.Repository.UserRepository;        //Import repository interface for database operations
-import java.util.*;                                     //Import utility classes
-import org.junit.jupiter.api.BeforeEach;                //Runs setup before each test
-import org.junit.jupiter.api.Test;                      //Marks a method as a test case
-import org.junit.jupiter.api.extension.ExtendWith;      //Integrates Mockito with JUnit 5
-import org.mockito.InjectMocks;                         //Injects mocks into the class under test
-import org.mockito.Mock;                                //Creates mock objects
-import org.mockito.junit.jupiter.MockitoExtension;      //Enables Mockito extension for JUnit 5
-import static org.junit.jupiter.api.Assertions.*;       //Provides assertion methods
-import static org.mockito.ArgumentMatchers.any;         //Allows flexible argument matching in mocks
-import static org.mockito.Mockito.*;                    //Provides mocking utilities (e.g., when(), verify())
+package com.user.login.Service;                                         //Declares the package for the UserServiceTest class
+import com.user.login.DTO.UserDTO;                                      //Imports the UserDTO class
+import com.user.login.Entity.User;                                      //Imports the User entity class
+import com.user.login.Exception.EmailAlreadyExistsException;            //Exception for duplicate emails
+import com.user.login.Exception.UserNotFoundException;                  //Exception when a user is not found
+import com.user.login.Exception.UsernameAlreadyExistsException;         //Exception for duplicate usernames
+import com.user.login.Mapper.UserMapper;                                //Imports the UserMapper for mapping entities and DTOs
+import com.user.login.Repository.UserRepository;                        //Imports the UserRepository interface
+import org.junit.jupiter.api.BeforeEach;                                //JUnit annotation to run before each test
+import org.junit.jupiter.api.Test;                                      //JUnit annotation to mark test methods
+import org.junit.jupiter.api.extension.ExtendWith;                      //Used to extend test behavior with extensions
+import org.mockito.InjectMocks;                                         //Tells Mockito to inject mocks into the tested class
+import org.mockito.Mock;                                                //Marks a field to be mocked
+import org.mockito.junit.jupiter.MockitoExtension;                      //Imports the MockitoExtension class to enable Mockito annotations in JUnit 5 tests.
+import org.springframework.security.access.AccessDeniedException;       //Thrown when access is denied
+import org.springframework.security.core.Authentication;                //Represents the authentication token
+import org.springframework.security.core.context.SecurityContextHolder; //Holds the security context
+import org.springframework.security.core.context.SecurityContext;       //Interface for accessing security context
+import java.util.*;                                                     //Imports utility classes like Optional, List, Arrays
+import static org.junit.jupiter.api.Assertions.*;                       //Static imports for assertions
+import static org.mockito.ArgumentMatchers.any;                         //Allows flexible argument matching in Mockito
+import static org.mockito.Mockito.*;                                    //Static imports for mocking behaviors
 
-@ExtendWith(MockitoExtension.class) //Enable Mockito support in JUnit 5 tests
-public class UserServiceTest 
+@ExtendWith(MockitoExtension.class) //Tells JUnit to run with Mockito extension
+class UserServiceTest 
 {
-    @Mock
-    private UserRepository userRepository;  //Mock the UserRepository dependency
-
-    @Mock
-    private UserMapper userMapper;          //Mock the UserMapper dependency
-
     @InjectMocks
-    private UserService userService;        //Inject the mocked dependencies into UserService
+    private UserService userService;            //Injects mocks into UserService
 
-    private User user;
-    private UserDTO userDTO;                //Declare sample User and UserDTO objects
+    @Mock
+    private UserRepository userRepository;      //Mock for user data operations
 
-    @BeforeEach //Set up reusable test data before each test
+    @Mock
+    private UserMapper userMapper;              //Mock for mapping between User and UserDTO
+
+    @Mock
+    private SecurityContext securityContext;    //Mock for security context
+
+    @Mock
+    private Authentication authentication;      //Mock for authentication details
+
+    @BeforeEach
     void setUp() 
     {
-        //Create sample User entity
-        user = User.builder().userId(1L).username("adrian").email("adrian@example.com")
-        .homeAddress("Singapore").password("password123").role(Role.CUSTOMER).build();
-
-        //Create sample UserDTO
-        userDTO = UserDTO.builder().userId(1L).username("adrian").email("adrian@example.com")
-        .homeAddress("Singapore").password("password123").role(Role.CUSTOMER).build();
+        SecurityContextHolder.setContext(securityContext);  //Set mocked security context before each test
     }
 
-    @Test   //Test successful user creation
-    void testCreateUser_success() 
+    @Test
+    void createUser_shouldThrowException_ifUsernameExists() 
     {
-        when(userMapper.toEntity(userDTO)).thenReturn(user);                        //Map DTO to Entity
-        when(userRepository.save(user)).thenReturn(user);                           //Save user to repo
-        when(userMapper.toDTO(user)).thenReturn(userDTO);                           //Map Entity back to DTO
-        UserDTO result = userService.createUser(userDTO);                           //Call method under test
-        assertEquals(userDTO, result);                                              //Verify output matches input
-        verify(userRepository, times(1)).save(user);    //Ensure save() is called once
+        UserDTO dto = new UserDTO();                                                                        //Create a new UserDTO
+        dto.setUsername("existing");                                                                //Set username to simulate existing user
+        when(userRepository.existsByUsername("existing")).thenReturn(true);                 //Mock repository to return true
+        assertThrows(UsernameAlreadyExistsException.class, () -> userService.createUser(dto));  //Assert exception
     }
 
-    @Test   //Test successful retrieval of user by ID
-    void testGetUser_success() 
+    @Test
+    void createUser_shouldThrowException_ifEmailExists() 
     {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));        //Mock user found
-        when(userMapper.toDTO(user)).thenReturn(userDTO);                           //Map Entity to DTO
-        UserDTO result = userService.getUser(1L);                           //Call method under test
-        assertEquals(userDTO, result);                                              //Verify returned user matches expected
-        verify(userRepository, times(1)).findById(1L);  //Ensure findById is called once
+        UserDTO dto = new UserDTO();                                                                //Create a new UserDTO
+        dto.setUsername("new");                                                             //Set new username
+        dto.setEmail("duplicate@example.com");                                                  //Set duplicate email
+        when(userRepository.existsByUsername("new")).thenReturn(false);                 //Username not taken
+        when(userRepository.existsByEmail("duplicate@example.com")).thenReturn(true);       //Email is taken
+        assertThrows(EmailAlreadyExistsException.class, () -> userService.createUser(dto)); //Assert exception
     }
 
-    @Test   //Test behavior when mapper returns null, expecting NullPointerException
-    void testCreateUser_mapperReturnsNull_shouldThrowException() 
+    @Test
+    void createUser_shouldSaveAndReturnUser() 
     {
-        when(userMapper.toEntity(userDTO)).thenReturn(null);                                            //Simulate mapper failure
-        when(userRepository.save(null)).thenThrow(new NullPointerException("User entity is null")); //Throw exception
-        assertThrows(NullPointerException.class, () -> userService.createUser(userDTO));        //Assert exception
-        verify(userMapper).toEntity(userDTO);       //Verify mapping attempt
-        verify(userRepository).save(null);  //Verify save call
+        UserDTO dto = new UserDTO();                                                            //Input DTO
+        dto.setUsername("new");
+        dto.setEmail("new@example.com");
+        User userEntity = new User(); //Entity created from DTO
+        User savedUser = new User(); //Entity returned from DB
+        UserDTO savedDto = new UserDTO(); //Final result DTO
+        when(userRepository.existsByUsername("new")).thenReturn(false);             //No duplicate username
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);    //No duplicate email
+        when(userMapper.toEntity(dto)).thenReturn(userEntity);                                  //Map DTO to entity
+        when(userRepository.save(userEntity)).thenReturn(savedUser);                                //Save user entity
+        when(userMapper.toDTO(savedUser)).thenReturn(savedDto);                                     //Map back to DTO
+        UserDTO result = userService.createUser(dto);                                           //Call method
+        assertEquals(savedDto, result);                                                         //Assert result matches
     }
 
-    @Test   //Test propagation of repository exception during user creation
-    void testCreateUser_repositoryThrowsException_shouldPropagate() 
+    @Test
+    void getUser_shouldReturnUser_ifAuthorized() 
     {
-        when(userMapper.toEntity(userDTO)).thenReturn(user);                                    //Mock valid entity
-        when(userRepository.save(user)).thenThrow(new RuntimeException("DB error"));    //Simulate DB error
-        
-        //Expect RuntimeException
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.createUser(userDTO));  
-
-        assertEquals("DB error", ex.getMessage());  //Validate error message
-        verify(userMapper).toEntity(userDTO);               //Ensure mapping was attempted
-        verify(userRepository).save(user);                  //Ensure save was attempted
+        mockAuthentication("john");                                                 //Mock user is authenticated as 'john'
+        User user = new User();                                                             //Simulate user in DB
+        user.setUserId(1L);
+        user.setUsername("john");
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));  //Authenticated user found
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));                //Target user found
+        when(userMapper.toDTO(user)).thenReturn(new UserDTO());                             //Convert to DTO
+        UserDTO result = userService.getUser(1L);                                   //Call method
+        assertNotNull(result);                                                              //Assert not null
     }
 
-    @Test   //Test behavior when user is not found by ID
-    void testGetUser_notFound() 
+    @Test
+    void getUser_shouldThrow_ifUnauthorized() 
     {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());                                 //Simulate user not found
-        assertThrows(UserNotFoundException.class, () -> userService.getUser(1L));   //Expect custom exception
-        verify(userRepository, times(1)).findById(1L);                      //Ensure repository method was called
+        mockAuthentication("john");                                                                 //Mock as 'john'
+        User user = new User();                                                                             //Another user
+        user.setUserId(99L);                                                                        //Different ID
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));              //Return logged in user
+        assertThrows(AccessDeniedException.class, () -> userService.getUser(1L));   //Expect denial
     }
 
-    @Test   //Test retrieving a list of all users
-    void testGetUsers_success() 
+    @Test
+    void getUser_shouldThrow_ifUserNotFound() 
     {
-        List<User> userList = List.of(user);                                //Mock entity list
-        List<UserDTO> userDTOList = List.of(userDTO);                       //Expected DTO list
-        when(userRepository.findAll()).thenReturn(userList);                //Return list of users
-        when(userMapper.toDTO(user)).thenReturn(userDTO);                   //Map each to DTO
-        List<UserDTO> result = userService.getUsers();                      //Call method under test
-        assertEquals(userDTOList, result);                                  //Verify result
-        verify(userRepository, times(1)).findAll(); //Verify repository method call
+        //Auth as 'john'
+        mockAuthentication("john"); 
+        User user = new User();
+        user.setUserId(1L);
+        user.setUsername("john");
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));              //Found auth user
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());                             //Target user not found
+
+        assertThrows(UserNotFoundException.class, () -> userService.getUser(1L));   //Expect exception
     }
 
-    @Test   //Test successful user update
-    void testUpdateUser_success() 
+    @Test
+    void getUsers_shouldReturnList_ifAdmin() 
     {
-        UserDTO updatedDTO = UserDTO.builder().username("newname").email("new@example.com").build(); //Define updated data
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));    //Simulate user exists
-        when(userRepository.save(any(User.class))).thenReturn(user);        //Simulate save
-        when(userMapper.toDTO(user)).thenReturn(updatedDTO);                    //Map to updated DTO
-        UserDTO result = userService.updateUser(1L, updatedDTO);        //Call update method
-        assertEquals("newname", result.getUsername());                  //Validate username update
-        assertEquals("new@example.com", result.getEmail());             //Validate email update
-        verify(userRepository).save(any(User.class));                       //Ensure save was called
+        mockAuthentication("admin");                        //Mock admin user
+        List<User> users = Arrays.asList(new User(), new User());   //List of users
+        when(userRepository.findAll()).thenReturn(users);           //Return all users
+        when(userMapper.toDTO(any())).thenReturn(new UserDTO());    //Map each to DTO
+        List<UserDTO> result = userService.getUsers();              //Call method
+        assertEquals(2, result.size());                     //Expect 2 DTOs
     }
 
-    @Test   //Test user update when user not found
-    void testUpdateUser_notFound() 
+    @Test
+    void getUsers_shouldThrow_ifNotAdmin() 
     {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty()); //Simulate user not found
-        UserDTO update = new UserDTO();                                     //Empty DTO for test
-        
-        //Expect exception
-        assertThrows(UserNotFoundException.class, () -> userService.updateUser(1L, update)); 
+        mockAuthentication("user");                                                     //Not admin
+        assertThrows(AccessDeniedException.class, () -> userService.getUsers());    //Expect denial
     }
 
-    @Test   //Test successful user deletion
-    void testDeleteUser_success() 
+    @Test
+    void updateUser_shouldUpdateFields_ifAuthorized() 
     {
-        when(userRepository.existsById(1L)).thenReturn(true);   //Simulate user exists
-        userService.deleteUser(1L);                                 //Call delete method
-        verify(userRepository).deleteById(1L);                          //Ensure delete was called
+        mockAuthentication("john");                                                         //Auth as 'john'
+        User existingUser = new User();                                                             //Existing DB user
+        existingUser.setUserId(1L);
+        existingUser.setUsername("john");
+        existingUser.setEmail("old@example.com");
+        UserDTO dto = new UserDTO();                                                                //Updated DTO
+        dto.setEmail("new@example.com");
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(existingUser));  //Find auth user
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));                    //Target matches auth
+        when(userRepository.save(existingUser)).thenReturn(existingUser);                               //Save updated
+        when(userMapper.toDTO(existingUser)).thenReturn(dto);                                           //Return updated DTO
+        UserDTO result = userService.updateUser(1L, dto);                                       //Call method
+        assertEquals("new@example.com", result.getEmail());                                     //Check updated
     }
 
-    @Test   //Test user deletion when user does not exist
-    void testDeleteUser_notFound() 
+    @Test
+    void updateUser_shouldThrow_ifUnauthorized() 
     {
-        when(userRepository.existsById(1L)).thenReturn(false);                                      //Simulate user missing
+        mockAuthentication("john");                                                                     //Logged in as john
+        User user = new User();                                                                                 //Different user
+        user.setUserId(99L);                                                                                //Not same ID
+        when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));                      //Logged in user
+        UserDTO dto = new UserDTO();                                                                            //Input DTO
+        assertThrows(AccessDeniedException.class, () -> userService.updateUser(1L, dto));   //Expect denial
+    }
+
+    @Test
+    void deleteUser_shouldDelete_ifAdminAndUserExists() 
+    {
+        mockAuthentication("admin");                            //Admin user
+        when(userRepository.existsById(1L)).thenReturn(true);   //User exists
+        userService.deleteUser(1L);                                 //Call delete
+        verify(userRepository).deleteById(1L);                          //Verify deletion
+    }
+
+    @Test
+    void deleteUser_shouldThrow_ifNotAdmin() 
+    {
+        mockAuthentication("john");                                                                 //Non-admin
+        assertThrows(AccessDeniedException.class, () -> userService.deleteUser(1L));    //Expect denial
+    }
+
+    @Test
+    void deleteUser_shouldThrow_ifUserNotFound() {
+        mockAuthentication("admin");                                                                //Admin
+        when(userRepository.existsById(1L)).thenReturn(false);                                      //User not found
         assertThrows(UserNotFoundException.class, () -> userService.deleteUser(1L));    //Expect exception
+    }
+
+    private void mockAuthentication(String username) 
+    {
+        when(securityContext.getAuthentication()).thenReturn(authentication);   //Return mock auth
+        when(authentication.isAuthenticated()).thenReturn(true);        //Authenticated
+        when(authentication.getName()).thenReturn(username);                    //Return username
     }
 }

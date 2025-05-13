@@ -7,7 +7,9 @@ import org.mapstruct.factory.Mappers;   //Importing Mappers factory for creating
 @Mapper(componentModel = "spring")      //Marks this interface as a MapStruct mapper for Spring context
 public interface UserMapper 
 {
-    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);  //Provides a static instance of the mapper
-    UserDTO toDTO(User user);                                       //Converts User entity to UserDTO
-    User toEntity(UserDTO userDTO);                                 //Converts UserDTO to User entity
+    //Provides a static instance of the mapper
+    UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);  
+    
+    UserDTO toDTO(User user);       //Converts User entity to UserDTO
+    User toEntity(UserDTO userDTO); //Converts UserDTO to User entity
 }

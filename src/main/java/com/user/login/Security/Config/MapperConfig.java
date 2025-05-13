@@ -1,4 +1,4 @@
-package com.user.login.Security.Config;                                //Package declaration
+package com.user.login.Security.Config;                         //Package declaration
 import org.mapstruct.factory.Mappers;                           //Provides access to MapStruct mapper instances
 import org.springframework.context.annotation.Bean;             //Marks a method as a Spring bean producer
 import org.springframework.context.annotation.Configuration;    //Declares this class as a Spring configuration
