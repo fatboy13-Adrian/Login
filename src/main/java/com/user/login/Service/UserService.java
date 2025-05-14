@@ -50,9 +50,9 @@ public class UserService implements UserInterface
     @Override  //Retrieve a user by their ID (Only can see your own user details)
     public UserDTO getUser(Long userId) 
     {
-        checkUserByIdAuthorization(userId); //Ensure the authenticated user has permission to access this user data
+        checkUserOrAdminAuthorization(userId);  //Admin will have full acecss while other roles can only access their own user account  
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId.toString()));    //Find the user or throw exception
-        return userMapper.toDTO(user);      //Return the found user as DTO
+        return userMapper.toDTO(user);          //Return the found user as DTO
     }
 
     @Override  //Retrieve all users and return them as a list of DTOs (Only Admin have the access rights)
@@ -62,7 +62,7 @@ public class UserService implements UserInterface
         return userRepository.findAll().stream().map(userMapper::toDTO).collect(Collectors.toList());   //Convert all users to DTOs and return
     }
 
-    //Update an existing user's details (Only can update your own user details)
+    @Override   //Update an existing user's details (Only can update your own user details)
     public UserDTO updateUser(Long userId, UserDTO userDTO) 
     {
         checkUserByIdAuthorization(userId); //Ensure the authenticated user has permission to update this user
@@ -132,11 +132,27 @@ public class UserService implements UserInterface
 
     private void checkAdminAuthorization() 
     {
-        //Retrieve the authenticated user's username
+        //Retrieve the authenticated user's username from security context
         String authUsername = getAuthenticatedUsername();
         
         //Check if the logged-in user is 'admin'
         if(!"admin".equals(authUsername)) 
             throw new AccessDeniedException("Only 'admin' can access this resource.");
+    }
+
+    private void checkUserOrAdminAuthorization(Long userId) 
+    {
+        //Retrieve the authenticated user's username from security context
+        String authUsername = getAuthenticatedUsername();
+
+        //Fetch the full authenticated User object using the username and throws a custom exception if user is not found in database
+        User authenticatedUser = userRepository.findByUsername(authUsername).orElseThrow(() -> new UserNotFoundException(authUsername));
+
+        boolean isAdmin = "admin".equals(authUsername);                      //Check if the authenticated user is an admin by comparing username to "admin"
+        boolean isOwner = userId.equals(authenticatedUser.getUserId());     //Check if the authenticated user's ID matches the requested user ID
+
+        //If user is neither admin nor owner of the requested user data, deny access
+        if(!isAdmin && !isOwner) 
+            throw new AccessDeniedException("You are not authorized to access this user data.");
     }
 }
