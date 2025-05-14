@@ -1,8 +1,11 @@
 package com.user.login.Service;                                         //Define the package location for the test class
 import com.user.login.Enum.Role;                                        //Import role enum for assigning user roles
+import com.user.login.Exception.EmailNotFoundException;                 //Import custom exception for email not found
 import com.user.login.DTO.Auth.AuthResponseDTO;                         //Import the DTO class for authentication responses
+import com.user.login.DTO.Auth.ForgotLoginCredentialDTO;                //Import the DTO class for forgot login credential
 import com.user.login.Entity.Auth.AuthRequest;                          //Import the request entity used for login
 import com.user.login.Entity.Auth.AuthResponse;                         //Import the response entity used for token refresh
+import com.user.login.Entity.Auth.ForgotLoginCredential;                //Import the forgot login credential entity used for resetting username and password
 import com.user.login.Entity.User;                                      //Import the User entity model
 import com.user.login.Repository.UserRepository;                        //Import repository interface to mock DB operations
 import com.user.login.Security.JWT.JwtAuthenticationToken;              //Import custom JWT authentication token implementation
@@ -18,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;    //Import
 import java.util.List;                                                  //Import collections for roles
 import java.util.Optional;                                              //Import optional for handling absent values
 import static org.junit.jupiter.api.Assertions.*;                       //Static import for assertions
+import static org.mockito.ArgumentMatchers.any;                         //Allows flexible argument matching in Mockito
 import static org.mockito.Mockito.*;                                    //Static import for mocking behavior
 
 @ExtendWith(MockitoExtension.class) //Enable Mockito extension for this test class
@@ -37,7 +41,7 @@ class AuthServiceTest
 
     //Declare test variables
     private AuthRequest authRequest;
-    private User user;
+    private User user, mockUser;
 
     @BeforeEach //Initialize test data before each test
     void setUp() 
@@ -47,6 +51,11 @@ class AuthServiceTest
         user.setUsername("testUser");                                       //set username
         user.setPassword("encodedPassword");                                //set encoded password
         user.setRole(Role.CUSTOMER);                                                //assign user role
+
+        mockUser = new User();                                                      //instantiate an existing user
+        mockUser.setEmail("test@example.com");                                  //set email
+        mockUser.setUsername("oldUser");                                    //set old username
+        mockUser.setPassword("oldPasswordHash");                            //set old password
     }
 
     @Test   //Test: valid credentials should return successful AuthResponseDTO
@@ -127,5 +136,134 @@ class AuthServiceTest
         //expect exception
         RuntimeException exception = assertThrows(RuntimeException.class, () -> authService.refreshToken(oldToken)); 
         assertEquals("Invalid or expired token", exception.getMessage());   //assert correct error message
+    }
+
+    @Test   //Test case: Successfully update both username and password
+    void testResetLoginCredential_updateUsernameAndPassword_success() 
+    {
+        //Prepare the request DTO
+        ForgotLoginCredential request = new ForgotLoginCredential();
+        request.setEmail("test@example.com");
+        request.setUsername("newUser");
+        request.setPassword("newPassword");
+
+        //Mock repository and password encoder behavior
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.encode("newPassword")).thenReturn("hashedPassword");
+
+        //Call the service method under test
+        ForgotLoginCredentialDTO response = authService.ResetLoginCredential(request);
+
+        //Assert returned values match expectations
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("newUser", response.getUsername());
+        assertEquals("Updated user credential successfully!", response.getMessage());
+
+        //Verify that the save method was called
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test   //Test case: Update only the username
+    void testResetLoginCredential_updateOnlyUsername_success() 
+    {
+        //Prepare the request DTO with password null
+        ForgotLoginCredential request = new ForgotLoginCredential();
+        request.setEmail("test@example.com");
+        request.setUsername("newUser");
+        request.setPassword(null);
+
+        //Mock repository response
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+
+        //Execute the service method
+        ForgotLoginCredentialDTO response = authService.ResetLoginCredential(request);
+
+        //Verify only username is updated
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("newUser", response.getUsername());
+
+        //Confirm save was called
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test   //Test case: Update only the password
+    void testResetLoginCredential_updateOnlyPassword_success() 
+    {
+        //Prepare the request DTO with username null
+        ForgotLoginCredential request = new ForgotLoginCredential();
+        request.setEmail("test@example.com");
+        request.setUsername(null);
+        request.setPassword("newPassword");
+
+        //Mock repository and password encoding
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.encode("newPassword")).thenReturn("hashedPassword");
+
+        //Execute the service method
+        ForgotLoginCredentialDTO response = authService.ResetLoginCredential(request);
+
+        //Verify only password is updated; username remains unchanged
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("oldUser", response.getUsername());
+
+        //Confirm save was called
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test   //Test case: Email not found in database
+    void testResetLoginCredential_emailNotFound_throwsException() 
+    {
+        //Prepare a request with a non-existent email
+        ForgotLoginCredential request = new ForgotLoginCredential();
+        request.setEmail("nonexistent@example.com");
+        request.setUsername("user");
+        request.setPassword("pass");
+
+        //Mock repository to return empty
+        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        //Assert exception is thrown when trying to reset with an unknown email
+        assertThrows(EmailNotFoundException.class, () -> 
+        {
+            authService.ResetLoginCredential(request);
+        });
+
+        //Ensure no save operation was triggered
+        verify(userRepository, never()).save(any());
+    }
+
+    //Test case: Null input should throw NullPointerException
+    @Test
+    void testResetLoginCredential_nullInput_throwsException() 
+    {
+        //Assert that passing null request throws a NullPointerException
+        assertThrows(NullPointerException.class, () -> 
+        {
+            authService.ResetLoginCredential(null);
+        });
+    }
+
+    //Test case: No new username or password is provided
+    @Test
+    void testResetLoginCredential_noNewValuesProvided() 
+    {
+        //Prepare a valid email with no changes in credentials
+        ForgotLoginCredential request = new ForgotLoginCredential();
+        request.setEmail("test@example.com");
+        request.setUsername(null);
+        request.setPassword(null);
+
+        //Mock repository response
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+
+        //Execute service method
+        ForgotLoginCredentialDTO response = authService.ResetLoginCredential(request);
+
+        //Assert unchanged data is returned
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("oldUser", response.getUsername());
+
+        //Verify user is still saved even if unchanged
+        verify(userRepository).save(any(User.class));
     }
 }

@@ -1,7 +1,10 @@
 package com.user.login.Service;                                             //Package declaration
 import com.user.login.Entity.Auth.AuthRequest;                              //AuthRequest entity for user authentication input
 import com.user.login.Entity.Auth.AuthResponse;                             //AuthResponse entity for response after authentication
+import com.user.login.Entity.Auth.ForgotLoginCredential;                    //ForgotLoginCredential entity for resetting username and password
+import com.user.login.Exception.EmailNotFoundException;                     //Custom exception for email not found
 import com.user.login.DTO.Auth.AuthResponseDTO;                             //DTO for formatted response after authentication
+import com.user.login.DTO.Auth.ForgotLoginCredentialDTO;                    //DTO for resetting username and password
 import com.user.login.Entity.User;                                          //User entity for user data
 import com.user.login.Repository.UserRepository;                            //User repository for querying user data
 import com.user.login.Security.JWT.JwtAuthenticationToken;                  //Custom authentication token for JWT authentication
@@ -48,6 +51,26 @@ public class AuthService
 
         //Return AuthResponseDTO containing the token, success message, and role-based welcome message
         return AuthResponseDTO.builder().token(token).message("Authentication successful").roleMessage(welcomeMessage).build();
+    }
+
+    //Allow user to reset username and password by providing their email address
+    public ForgotLoginCredentialDTO ResetLoginCredential(ForgotLoginCredential forgotLoginCredential)
+    {
+        //Retrieve user from database based on email
+        User user = userRepository.findByEmail(forgotLoginCredential.getEmail()).orElseThrow(() -> new EmailNotFoundException(forgotLoginCredential.getEmail()));
+
+        //Validate if new login credential provided is not null and perform the update logic for user
+        if(forgotLoginCredential.getUsername() != null)
+            user.setUsername(forgotLoginCredential.getUsername());
+
+        if(forgotLoginCredential.getPassword() != null)
+            user.setPassword(passwordEncoder.encode(forgotLoginCredential.getPassword()));
+        
+        //Save the updated user to the database
+        userRepository.save(user);  //Ensure changes are committed to the database
+
+        //Return a DTO with the updated information
+        return ForgotLoginCredentialDTO.builder().email(user.getEmail()).username(user.getUsername()).message("Updated user credential successfully!").build();
     }
 
     //Authenticate using JWT token

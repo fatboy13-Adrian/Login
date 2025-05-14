@@ -3,11 +3,14 @@ import com.user.login.DTO.Auth.AuthRequestDTO;                  //Imports the DT
 import com.user.login.DTO.Auth.AuthResponseDTO;                 //Imports the DTO used to send authentication results (e.g., JWT token) back to the client
 import com.user.login.Entity.Auth.AuthRequest;                  //Imports the internal entity representing login request data in the application logic
 import com.user.login.Entity.Auth.AuthResponse;                 //Imports the internal entity representing authentication result used internally
+import com.user.login.Entity.Auth.ForgotLoginCredential;        //Imports the entity used to reset username and passwor
 import com.user.login.Service.AuthService;                      //Imports the authentication service which handles business logic for auth operations
 import org.springframework.beans.factory.annotation.Autowired;  //Imports Spring's annotation to enable automatic dependency injection
 import org.springframework.http.HttpStatus;                     //Imports HTTP status codes such as OK (200), UNAUTHORIZED (401), FORBIDDEN (403)
 import org.springframework.http.ResponseEntity;                 //Imports the ResponseEntity class used to build complete HTTP responses (body + status code)
 import org.springframework.web.bind.annotation.*;               //Imports Spring annotation to define a REST API controller
+import com.user.login.Exception.EmailNotFoundException;         //Custom exception for email not found
+import com.user.login.DTO.Auth.ForgotLoginCredentialDTO;        //DTO for resetting username and password
 
 @CrossOrigin(origins = "http://localhost:3000")                 //Enables CORS (Cross-Origin Resource Sharing) for frontend access (e.g., React app on port 3000)
 @RestController                                                 //Marks this class as a REST controller, which handles HTTP requests and returns JSON/XML
@@ -78,5 +81,32 @@ public class AuthController
     public ResponseEntity<String> getProtectedResource() 
     {
         return ResponseEntity.ok("This is a protected resource.");  //Returns a simple success message with HTTP 200 OK
+    }
+
+    //Endpoint to allow user to reset their username and password using email
+    @PostMapping("/forgotLogin")
+    public ResponseEntity<ForgotLoginCredentialDTO> resetLoginCredential(@RequestBody ForgotLoginCredential forgotLoginCredential) 
+    {
+        ForgotLoginCredentialDTO response;
+        
+        try 
+        {
+            response = authService.ResetLoginCredential(forgotLoginCredential); //Call the service method to reset login credentials
+            return ResponseEntity.ok(response);                                 // Return a successful response with the updated details
+        } 
+        
+        catch(EmailNotFoundException e) 
+        {
+            //Handle case where email is not found in the database
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ForgotLoginCredentialDTO.builder()
+            .message(e.getMessage()).build());
+        } 
+        
+        catch(Exception e) 
+        {
+            //Handle any other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ForgotLoginCredentialDTO.builder()
+            .message("An error occurred while resetting credentials").build());
+        }
     }
 }

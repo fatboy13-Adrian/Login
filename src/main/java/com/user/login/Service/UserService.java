@@ -85,9 +85,6 @@ public class UserService implements UserInterface
             String encodedPassword = passwordEncoder.encode(userDTO.getPassword()); //Encode the new password before saving it     
             existingUser.setPassword(encodedPassword);                              //Update password with the encoded one
         }
-        
-        if(userDTO.getRole() != null) 
-            existingUser.setRole(userDTO.getRole());                                //Update role if provided
 
         User updatedUser = userRepository.save(existingUser);                       //Save the updated user entity to the database
         return userMapper.toDTO(updatedUser);                                       //Return the updated user as DTO

@@ -1,116 +1,159 @@
-package com.user.login.Controller;                  //Package declaration for the AuthController tests
-import com.user.login.DTO.Auth.AuthRequestDTO;      //DTO for the login request payload
-import com.user.login.DTO.Auth.AuthResponseDTO;     //DTO for the response payload from login/authentication
-import com.user.login.Entity.Auth.AuthResponse;     //Entity class representing an authentication response (token info)
-import com.user.login.Service.AuthService;          //The service class responsible for authentication logic
-import org.junit.jupiter.api.BeforeEach;            //JUnit annotation for setting up before each test
-import org.junit.jupiter.api.Test;                  //JUnit annotation to define a test method
-import org.junit.jupiter.api.extension.ExtendWith;  //JUnit annotation to extend test functionality
-import static org.mockito.Mockito.*;                //Mockito static methods to mock behavior
-import static org.junit.jupiter.api.Assertions.*;   //JUnit assertions to validate test results
-import org.mockito.InjectMocks;                     //To inject mocks into the class under test
-import org.mockito.Mock;                            //Annotation to mock dependencies
-import org.mockito.junit.jupiter.MockitoExtension;  //Extension for integrating Mockito with JUnit
-import org.springframework.http.HttpStatus;         //HTTP Status for assertions
-import org.springframework.http.ResponseEntity;     //ResponseEntity for HTTP response handling
+package com.user.login.Controller;                          //Defines the package for the AuthController test class
+import com.user.login.DTO.Auth.AuthRequestDTO;              //Imports the AuthRequestDTO class for login request payload
+import com.user.login.DTO.Auth.AuthResponseDTO;             //Imports the AuthResponseDTO class for the response payload
+import com.user.login.DTO.Auth.ForgotLoginCredentialDTO;    //Imports DTO for forgot login credential response
+import com.user.login.Entity.Auth.AuthResponse;             //Imports the AuthResponse entity for authentication responses
+import com.user.login.Entity.Auth.ForgotLoginCredential;    //Imports ForgotLoginCredential entity for storing login credentials
+import com.user.login.Exception.EmailNotFoundException;     //Imports the custom exception for email not found
+import com.user.login.Service.AuthService;                  //Imports AuthService for mocking authentication logic
+import org.junit.jupiter.api.BeforeEach;                    //Imports BeforeEach annotation to setup before each test
+import org.junit.jupiter.api.Test;                          //Imports Test annotation to define test methods
+import org.junit.jupiter.api.extension.ExtendWith;          //Imports ExtendWith for extending test class functionality
+import static org.mockito.ArgumentMatchers.any;             //Imports ArgumentMatchers for mocking argument matching
+import static org.mockito.Mockito.*;                        //Imports Mockito static methods to mock behavior
+import static org.junit.jupiter.api.Assertions.*;           //Imports JUnit assertions to validate test results
+import org.mockito.InjectMocks;                             //Allows injection of mocked dependencies into the class under test
+import org.mockito.Mock;                                    //Mock annotation to define dependencies to be mocked
+import org.mockito.junit.jupiter.MockitoExtension;          //Extension for integrating Mockito with JUnit
+import org.springframework.http.HttpStatus;                 //Imports HttpStatus for HTTP status code usage
+import org.springframework.http.ResponseEntity;             //Imports ResponseEntity to handle HTTP responses
 
-@ExtendWith(MockitoExtension.class) //Extend test class with Mockito functionality for mocking
+@ExtendWith(MockitoExtension.class) //Integrates Mockito for mocking dependencies in the test class
 class AuthControllerTest 
 {
     @Mock
-    private AuthService authService;            //Mock the AuthService class (dependency of AuthController)
+    private AuthService authService;            //Mocks AuthService, the dependency of AuthController
 
     @InjectMocks
-    private AuthController authController;      //Inject the mocked AuthService into AuthController
+    private AuthController authController;      //Injects mocked AuthService into the AuthController being tested
 
-    private AuthRequestDTO validRequestDTO;     //DTO to hold a valid login request (username and password)
-    private AuthResponseDTO successResponseDTO; //DTO to hold successful authentication response (with token)
+    private AuthRequestDTO validRequestDTO;     //Declares a valid AuthRequestDTO for login request
+    private AuthResponseDTO successResponseDTO; //Declares an expected successful response DTO for authentication
 
-    @BeforeEach //Method that runs before each test
+    @BeforeEach //Sets up mock data before each test
     void setUp() 
     {
-        //Set up valid login request DTO with mock data
-        validRequestDTO = new AuthRequestDTO();
-        validRequestDTO.setUsername("user");
-        validRequestDTO.setPassword("password");
+        validRequestDTO = new AuthRequestDTO();             //Initializes a new AuthRequestDTO
+        validRequestDTO.setUsername("user");        //Sets the username for the valid request
+        validRequestDTO.setPassword("password");    //Sets the password for the valid request
 
-        //Set up mock success response DTO with a token and message
+        //Initializes a mock AuthResponseDTO with token and success message
         successResponseDTO = AuthResponseDTO.builder().token("mock-token").message("Login successful").build();
     }
 
-    @Test   //POSITIVE TEST - Test case for successful login
+    @Test   //Positive test for successful login
     void testLoginSuccess() 
     {
-        //Mock the behavior of AuthService.authenticate() to return a successful response
+        //Mocks the behavior to return a successful response
         when(authService.authenticate(any())).thenReturn(successResponseDTO);
 
-        //Call the login method in AuthController
-        ResponseEntity<AuthResponseDTO> response = authController.login(validRequestDTO);
+        ResponseEntity<AuthResponseDTO> response = authController.login(validRequestDTO);  //Calls login method
 
-        //Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                      //Status should be 200 OK
-        assertEquals("mock-token", response.getBody().getToken());          //The token should match the mock value
-        assertEquals("Login successful", response.getBody().getMessage());  //The message should be success message
+        //Asserts that the response has a 200 OK status and the expected token and message
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("mock-token", response.getBody().getToken());
+        assertEquals("Login successful", response.getBody().getMessage());
     }
 
-    @Test   //NEGATIVE TEST - Test case for login failure (invalid credentials)
+    @Test   //Negative test for login failure (invalid credentials)
     void testLoginFailure() 
     {
-        //Mock the behavior of AuthService.authenticate() to throw an exception for invalid credentials
+        //Mocks failure by throwing an exception
         when(authService.authenticate(any())).thenThrow(new RuntimeException("Invalid credentials"));
 
-        //Call the login method in AuthController
-        ResponseEntity<AuthResponseDTO> response = authController.login(validRequestDTO);
+        //Calls login method
+        ResponseEntity<AuthResponseDTO> response = authController.login(validRequestDTO);  
 
-        //Validate the HTTP status and response body
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());                //Status should be 401 Unauthorized
-        assertNull(response.getBody().getToken());                                      //No token should be returned
-        assertEquals("Authentication failed", response.getBody().getMessage()); //The message should indicate failure
+        //Asserts that the response has a 401 Unauthorized status and the failure message
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNull(response.getBody().getToken());
+        assertEquals("Authentication failed", response.getBody().getMessage());
     }
 
-    @Test   //POSITIVE TEST - Test case for refreshing a token
+    @Test   //Positive test for refreshing a token
     void testRefreshTokenSuccess() 
     {
-        String oldToken = "oldToken";                   //Define an old token for refresh
-        AuthResponse refreshed = new AuthResponse();    //Create a new AuthResponse for refreshed token
+        String oldToken = "oldToken";                 //Defines an old token to be refreshed
+        AuthResponse refreshed = new AuthResponse();  //Creates a new AuthResponse object with the new token
         refreshed.setToken("newToken");
 
-        //Mock the behavior of AuthService.refreshToken() to return the refreshed token
+        //Mocks the behavior to return a refreshed token
         when(authService.refreshToken(oldToken)).thenReturn(refreshed);
 
-        //Call the refreshToken method in AuthController
-        ResponseEntity<AuthResponseDTO> response = authController.refreshToken(oldToken);
+        ResponseEntity<AuthResponseDTO> response = authController.refreshToken(oldToken);   //Calls refreshToken method
 
-        //Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                                  //Status should be 200 OK
-        assertEquals("newToken", response.getBody().getToken());                        //The new token should be returned
-        assertEquals("Token refreshed successfully", response.getBody().getMessage());  //Success message should indicate refresh
+        //Asserts that the response has a 200 OK status and the new token with success message
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("newToken", response.getBody().getToken());
+        assertEquals("Token refreshed successfully", response.getBody().getMessage());
     }
 
-    @Test   //NEGATIVE TEST - Test case for refresh token failure (expired token)
+    @Test   //Negative test for refresh token failure (expired token)
     void testRefreshTokenFailure() 
     {
-        String oldToken = "expiredToken";   //Define an expired token for the failure scenario
+        String oldToken = "expiredToken";           //Defines an expired token to simulate failure
 
-        //Mock the behavior of AuthService.refreshToken() to throw an exception for invalid token
+        //Mocks failure by throwing an exception
         when(authService.refreshToken(oldToken)).thenThrow(new RuntimeException("Token invalid"));
 
-        //Call the refreshToken method in AuthController
-        ResponseEntity<AuthResponseDTO> response = authController.refreshToken(oldToken);
+        ResponseEntity<AuthResponseDTO> response = authController.refreshToken(oldToken);   //Calls refreshToken method
 
-        //Validate the HTTP status and response body
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());                   //Status should be 403 Forbidden
-        assertNull(response.getBody().getToken());                                      //No token should be returned
-        assertEquals("Token refresh failed", response.getBody().getMessage());  //Failure message should indicate failure
+        //Asserts that the response has a 403 Forbidden status and failure message
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNull(response.getBody().getToken());
+        assertEquals("Token refresh failed", response.getBody().getMessage());
     }
 
-    @Test   //TEST - Test case for accessing a protected resource (no auth needed for this test)
+    @Test   //Test case for accessing a protected resource
     void testProtectedResource() 
     {
-        ResponseEntity<String> response = authController.getProtectedResource();    //Call the getProtectedResource method in AuthController
+        ResponseEntity<String> response = authController.getProtectedResource();   //Calls the protected resource method
 
-        //Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                      //Status should be 200 OK
-        assertEquals("This is a protected resource.", response.getBody());  //Response body should match the expected string
+        //Asserts that the response has a 200 OK status and the expected message
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("This is a protected resource.", response.getBody());
+    }
+
+    @Test   //Positive test for forgot login credential reset
+    public void testForgotLoginCredentialSuccess() 
+    {
+        //Sets up the expected response for successful reset
+        ForgotLoginCredentialDTO expectedResponse = ForgotLoginCredentialDTO.builder().message("Reset successful").build();  
+
+        //Mocks the reset behavior
+        when(authService.ResetLoginCredential(any(ForgotLoginCredential.class))).thenReturn(expectedResponse);
+
+        //Uses Lombok builder to create the request
+        ForgotLoginCredential forgotLoginCredential = ForgotLoginCredential.builder().email("user@example.com").build();
+
+        //Calls reset method
+        ResponseEntity<ForgotLoginCredentialDTO> responseEntity = authController.resetLoginCredential(forgotLoginCredential);  
+
+        //Asserts the success response with a 200 OK status and expected message
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Reset successful", responseEntity.getBody().getMessage());
+        
+        //Verifies that the reset method was called once
+        verify(authService, times(1)).ResetLoginCredential(any(ForgotLoginCredential.class));
+    }
+
+    @Test   //Negative test for forgot login credential failure (email not found)
+    public void testForgotLoginCredentialFailure_EmailNotFound() 
+    {
+        //Mocks failure due to email not found
+        when(authService.ResetLoginCredential(any(ForgotLoginCredential.class))).thenThrow(new EmailNotFoundException("nonexistent@example.com"));
+
+        //Builds ForgotLoginCredential with the email
+        ForgotLoginCredential forgotLoginCredential = ForgotLoginCredential.builder().email("nonexistent@example.com").build();
+
+        //Calls reset method
+        ResponseEntity<ForgotLoginCredentialDTO> responseEntity = authController.resetLoginCredential(forgotLoginCredential);  
+
+        //Asserts that the response has a 404 NOT_FOUND status and a failure message
+        assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+        assertEquals("nonexistent@example.com not found in DB", responseEntity.getBody().getMessage());
+        
+        //Verifies that the reset method was called once
+        verify(authService, times(1)).ResetLoginCredential(any(ForgotLoginCredential.class));
     }
 }
