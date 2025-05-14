@@ -1,10 +1,8 @@
-import React from 'react';  //Importing React for building components
+import React from 'react';
 
-//A reusable Button component for handling button rendering
-const Button = ({type, onClick, children}) => 
-{
+const Button = ({ type = 'button', onClick, children }) => {
   return (
-    <button type={type} onClick={onClick}>
+    <button type={type} onClick={onClick} style={{ padding: '0.5rem 1rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', cursor: 'pointer' }}>
       {children}
     </button>
   );

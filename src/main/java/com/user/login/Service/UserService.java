@@ -10,6 +10,8 @@ import com.user.login.Repository.UserRepository;                        //Reposi
 import lombok.RequiredArgsConstructor;                                  //Automatically generates constructor for dependencies
 import org.springframework.security.core.Authentication;                //Class for authentication details
 import org.springframework.security.core.context.SecurityContextHolder; //Provides access to the security context
+import org.springframework.security.crypto.password.PasswordEncoder;    //Import for encoding passwords securely
+import org.springframework.beans.factory.annotation.Autowired;          //Import for dependency injection of beans
 import org.springframework.security.access.AccessDeniedException;       //Exception thrown when access is denied
 import org.springframework.stereotype.Service;                          //Marks this class as a service to be managed by Spring
 import java.util.List;                                                  //List for managing collections of users
@@ -20,7 +22,12 @@ import java.util.stream.Collectors;                                     //For co
 public class UserService implements UserInterface 
 {
     private final UserRepository userRepository;   //Repository for accessing user data
+
+    @Autowired
     private final UserMapper userMapper;           //Mapper to convert between User and UserDTO
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override  //Creates a new user after validating username and email (Open to all)
     public UserDTO createUser(UserDTO userDTO) 
@@ -33,6 +40,8 @@ public class UserService implements UserInterface
         if(userRepository.existsByEmail(userDTO.getEmail())) 
             throw new EmailAlreadyExistsException(userDTO.getEmail());          //Throw exception ifemail exists
 
+        String encodedPassword = passwordEncoder.encode(userDTO.getPassword()); //Hash and encode the password before saving new user account into DB.
+        userDTO.setPassword(encodedPassword);                                   //Set the encoded password back into the DTO
         User user = userMapper.toEntity(userDTO);                               //Convert DTO to entity
         User savedUser = userRepository.save(user);                             //Save the user entity to the database
         return userMapper.toDTO(savedUser);                                     //Return the saved user as DTO
@@ -63,22 +72,25 @@ public class UserService implements UserInterface
 
         //Partial update logic for different fields of the user
         if(userDTO.getUsername() != null) 
-            existingUser.setUsername(userDTO.getUsername());        //Update username if provided
+            existingUser.setUsername(userDTO.getUsername());                        //Update username if provided
         
         if(userDTO.getEmail() != null) 
-            existingUser.setEmail(userDTO.getEmail());              //Update email if provided
+            existingUser.setEmail(userDTO.getEmail());                              //Update email if provided
         
         if(userDTO.getHomeAddress() != null) 
-            existingUser.setHomeAddress(userDTO.getHomeAddress());  //Update home address if provided
+            existingUser.setHomeAddress(userDTO.getHomeAddress());                  //Update home address if provided
         
         if(userDTO.getPassword() != null) 
-            existingUser.setPassword(userDTO.getPassword());        //Update password if provided
+        {
+            String encodedPassword = passwordEncoder.encode(userDTO.getPassword()); //Encode the new password before saving it     
+            existingUser.setPassword(encodedPassword);                              //Update password with the encoded one
+        }
         
         if(userDTO.getRole() != null) 
-            existingUser.setRole(userDTO.getRole());                //Update role if provided
+            existingUser.setRole(userDTO.getRole());                                //Update role if provided
 
-        User updatedUser = userRepository.save(existingUser);       //Save the updated user entity to the database
-        return userMapper.toDTO(updatedUser);                       //Return the updated user as DTO
+        User updatedUser = userRepository.save(existingUser);                       //Save the updated user entity to the database
+        return userMapper.toDTO(updatedUser);                                       //Return the updated user as DTO
     }
 
     @Override  //Delete a user by their ID (Only admin have the access rights)

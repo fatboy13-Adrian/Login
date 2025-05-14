@@ -1,4 +1,6 @@
 package com.user.login.DTO;                     //Declares the package that this class belongs to
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 import com.user.login.Enum.Role;                //Imports the Role enum used to define user roles
 import jakarta.validation.constraints.Email;    //Validates that the email format is correct
 import jakarta.validation.constraints.NotBlank; //Ensures the field is not null or empty
@@ -11,6 +13,7 @@ import lombok.*;                                //Imports Lombok annotations to 
 @NoArgsConstructor  //Lombok: generates a no-argument constructor
 @AllArgsConstructor //Lombok: generates a constructor with all fields as parameters
 @Builder            //Lombok: enables the builder pattern for creating instances of this class
+@CrossOrigin(origins = "http://localhost:3000")
 public class UserDTO 
 { 
     private Long userId;                                                                //ID of the user (typically auto-generated; not validated manually)

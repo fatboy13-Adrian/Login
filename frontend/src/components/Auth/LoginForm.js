@@ -1,12 +1,11 @@
 // src/components/Auth/LoginForm.js
-
 import React, { useState } from 'react';
 import { loginUser } from '../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import InputField from '../InputField';  // Import the InputField component
-import ErrorMessage from '../ErrorMessage';  // Import the ErrorMessage component
-import Button from '../Button';  // Import the Button component
+import InputField from '../InputField';
+import ErrorMessage from '../ErrorMessage';
+import Button from '../Button';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
@@ -15,7 +14,6 @@ const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Submit handler with async error handling
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -23,15 +21,21 @@ const LoginForm = () => {
     try {
       const userData = await loginUser(username, password);
       login(userData);
-      console.log(userData);
 
-      // Extract role from roleMessage string
-      const role = userData.roleMessage.split(':')[1].trim();
+      const role = userData.roleMessage?.split(':')[1]?.trim().toUpperCase();
 
-      navigate('/home', { state: { role } });
+      if (role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/home', { state: { role } });
+      }
     } catch (err) {
       setError('Invalid credentials, please try again.');
     }
+  };
+
+  const handleNavigateToRegister = () => {
+    navigate('/create-user');
   };
 
   return (
@@ -55,8 +59,18 @@ const LoginForm = () => {
           required
         />
         <ErrorMessage message={error} />
-        <Button type="submit">Login</Button>  {/* Use the Button component here */}
+        <Button type="submit">Login</Button>
       </form>
+      <div style={{ marginTop: '1rem' }}>
+        <Button type="button" onClick={handleNavigateToRegister}>
+          Register New User
+        </Button>
+      </div>
+      <div style={{ marginTop: '1rem' }}>
+        <Button type="button" onClick={handleNavigateToRegister}>
+          Forgot My Password
+        </Button>
+      </div>
     </div>
   );
 };
