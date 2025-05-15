@@ -236,11 +236,14 @@ class AuthServiceTest
     @Test
     void testResetLoginCredential_nullInput_throwsException() 
     {
-        //Assert that passing null request throws a NullPointerException
-        assertThrows(NullPointerException.class, () -> 
+        //Assert that passing null to ResetLoginCredential throws IllegalArgumentException
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> 
         {
-            authService.ResetLoginCredential(null);
+            authService.ResetLoginCredential(null); //Simulate null input
         });
+
+        //Verify the exception message matches expected
+        assertEquals("Email must be provided", thrown.getMessage());
     }
 
     //Test case: No new username or password is provided

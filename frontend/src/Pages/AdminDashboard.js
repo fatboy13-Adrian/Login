@@ -1,151 +1,77 @@
-import React, { useState } from 'react';
+// src/components/AdminDashboard.js
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import Button from '../components/Button';
-import InputField from '../components/InputField';
-import ErrorMessage from '../components/ErrorMessage';
-
-const API_URL = 'http://localhost:8080/users';
 
 const AdminDashboard = () => {
-  const [userId, setUserId] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [homeAddress, setHomeAddress] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('CUSTOMER');
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleCreateUser = async () => {
+  const fetchUsers = async () => {
     try {
-      const response = await axios.post(`${API_URL}/create`, {
-        username,
-        email,
-        homeAddress,
-        password,
-        role
+      const response = await axios.get("http://localhost:8080/users", {
+        withCredentials: true, // include auth cookies if needed
       });
-      alert('User created successfully!');
-      console.log(response.data);
-    } catch (err) {
-      setError('Failed to create user');
-    }
-  };
-
-  const handleGetUser = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/${userId}`);
-      setUsers([response.data]);
-    } catch (err) {
-      setError('Failed to fetch user');
-    }
-  };
-
-  const handleGetAllUsers = async () => {
-    try {
-      const response = await axios.get(API_URL);
       setUsers(response.data);
     } catch (err) {
-      setError('Failed to fetch users');
+      setError("Failed to fetch users. " + (err.response?.data || err.message));
     }
   };
 
-  const handleUpdateUser = async () => {
+  const deleteUser = async (userId) => {
     try {
-      const response = await axios.put(`${API_URL}/update/${userId}`, {
-        username,
-        email,
-        homeAddress,
-        password,
-        role
+      await axios.delete(`http://localhost:8080/users/${userId}`, {
+        withCredentials: true,
       });
-      alert('User updated successfully!');
-      console.log(response.data);
+      setUsers(users.filter((user) => user.userId !== userId));
     } catch (err) {
-      setError('Failed to update user');
+      alert("Failed to delete user: " + (err.response?.data || err.message));
     }
   };
 
-  const handleDeleteUser = async () => {
-    try {
-      await axios.delete(`${API_URL}/delete/${userId}`);
-      alert('User deleted successfully!');
-    } catch (err) {
-      setError('Failed to delete user');
-    }
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Admin Dashboard</h1>
-
-      <div style={{ marginBottom: '1rem' }}>
-        <InputField
-          id="userId"
-          label="User ID"
-          type="text"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-        />
-        <InputField
-          id="username"
-          label="Username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <InputField
-          id="email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <InputField
-          id="homeAddress"
-          label="Home Address"
-          type="text"
-          value={homeAddress}
-          onChange={(e) => setHomeAddress(e.target.value)}
-        />
-        <InputField
-          id="password"
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <div>
-          <label htmlFor="role">Role:</label>
-          <select id="role" value={role} onChange={(e) => setRole(e.target.value)} required>
-            <option value="CUSTOMER">CUSTOMER</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '1rem' }}>
-        <Button onClick={handleCreateUser}>Create User</Button>
-        <Button onClick={handleGetUser}>Get User</Button>
-        <Button onClick={handleGetAllUsers}>Get All Users</Button>
-        <Button onClick={handleUpdateUser}>Update User</Button>
-        <Button onClick={handleDeleteUser}>Delete User</Button>
-      </div>
-
-      <ErrorMessage message={error} />
-
-      <div>
-        <h2>User Data</h2>
-        {users.length === 0 ? (
-          <p>No users found.</p>
-        ) : (
-          <ul>
-            {users.map((user, index) => (
-              <li key={index}>{user.username} ({user.email})</li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Admin Dashboard - User List</h1>
+      {error && <div className="text-red-500 mb-2">{error}</div>}
+      <table className="min-w-full border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-200 text-left">
+            <th className="border border-gray-300 px-4 py-2">ID</th>
+            <th className="border border-gray-300 px-4 py-2">Username</th>
+            <th className="border border-gray-300 px-4 py-2">Email</th>
+            <th className="border border-gray-300 px-4 py-2">Address</th>
+            <th className="border border-gray-300 px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(({ userId, username, email, homeAddress }) => (
+            <tr key={userId}>
+              <td className="border px-4 py-2">{userId}</td>
+              <td className="border px-4 py-2">{username}</td>
+              <td className="border px-4 py-2">{email}</td>
+              <td className="border px-4 py-2">{homeAddress}</td>
+              <td className="border px-4 py-2">
+                <button
+                  onClick={() => deleteUser(userId)}
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+          {users.length === 0 && (
+            <tr>
+              <td colSpan="5" className="text-center py-4 text-gray-500">
+                No users found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 };

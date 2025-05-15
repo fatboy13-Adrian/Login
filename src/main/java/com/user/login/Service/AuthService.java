@@ -54,22 +54,35 @@ public class AuthService
     }
 
     //Allow user to reset username and password by providing their email address
-    public ForgotLoginCredentialDTO ResetLoginCredential(ForgotLoginCredential forgotLoginCredential)
+    public ForgotLoginCredentialDTO ResetLoginCredential(ForgotLoginCredential forgotLoginCredential) 
     {
-        //Retrieve user from database based on email
+        //Validate input: check for null object or missing/blank email
+        if(forgotLoginCredential == null || forgotLoginCredential.getEmail() == null || forgotLoginCredential.getEmail().isBlank()) 
+            throw new IllegalArgumentException("Email must be provided");
+
+        //Retrieve user by email; throw custom exception if not found
         User user = userRepository.findByEmail(forgotLoginCredential.getEmail()).orElseThrow(() -> new EmailNotFoundException(forgotLoginCredential.getEmail()));
 
-        //Validate if new login credential provided is not null and perform the update logic for user
-        if(forgotLoginCredential.getUsername() != null)
+        //Update username if a non-blank value is provided
+        if(forgotLoginCredential.getUsername() != null && !forgotLoginCredential.getUsername().isBlank())
             user.setUsername(forgotLoginCredential.getUsername());
 
-        if(forgotLoginCredential.getPassword() != null)
+        //Update password if a non-blank value is provided (after encoding)
+        if(forgotLoginCredential.getPassword() != null && !forgotLoginCredential.getPassword().isBlank()) 
             user.setPassword(passwordEncoder.encode(forgotLoginCredential.getPassword()));
-        
-        //Save the updated user to the database
-        userRepository.save(user);  //Ensure changes are committed to the database
 
-        //Return a DTO with the updated information
+        //Attempt to save the updated user; throw runtime exception on failure
+        try 
+        {
+            userRepository.save(user);
+        } 
+        
+        catch (Exception e) 
+        {
+            throw new RuntimeException("Failed to update user credentials", e);
+        }
+
+        //Return a DTO with updated user info and success message
         return ForgotLoginCredentialDTO.builder().email(user.getEmail()).username(user.getUsername()).message("Updated user credential successfully!").build();
     }
 

@@ -87,24 +87,38 @@ public class AuthController
     @PostMapping("/forgotLogin")
     public ResponseEntity<ForgotLoginCredentialDTO> resetLoginCredential(@RequestBody ForgotLoginCredential forgotLoginCredential) 
     {
-        ForgotLoginCredentialDTO response;
-        
         try 
         {
-            response = authService.ResetLoginCredential(forgotLoginCredential); //Call the service method to reset login credentials
-            return ResponseEntity.ok(response);                                 // Return a successful response with the updated details
+            //Basic validation: check if request or email is missing/blank
+            if(forgotLoginCredential == null || forgotLoginCredential.getEmail() == null || forgotLoginCredential.getEmail().isBlank())
+                return ResponseEntity.badRequest().body(ForgotLoginCredentialDTO.builder().message("Email must be provided").build());
+            
+            //Delegate to service to reset credentials
+            ForgotLoginCredentialDTO response = authService.ResetLoginCredential(forgotLoginCredential);
+            return ResponseEntity.ok(response);
         } 
         
         catch(EmailNotFoundException e) 
         {
-            //Handle case where email is not found in the database
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ForgotLoginCredentialDTO.builder()
-            .message(e.getMessage()).build());
+            //Email not found — return 404 with custom message
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ForgotLoginCredentialDTO.builder().message(e.getMessage()).build());
+
+        } 
+        
+        catch(IllegalArgumentException e) 
+        {
+            //Input validation error — return 400 with message
+            return ResponseEntity.badRequest().body(ForgotLoginCredentialDTO.builder().message(e.getMessage()).build());
+
         } 
         
         catch(Exception e) 
         {
-            //Handle any other exceptions
+            //Log unhandled exceptions for diagnostics
+            System.err.println("Error resetting login credentials: " + e.getMessage());
+            e.printStackTrace();
+
+            //Return generic 500 error
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ForgotLoginCredentialDTO.builder()
             .message("An error occurred while resetting credentials").build());
         }

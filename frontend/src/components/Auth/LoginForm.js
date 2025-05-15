@@ -1,42 +1,41 @@
-// src/components/Auth/LoginForm.js
-import React, { useState } from 'react';
-import { loginUser } from '../services/authService';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import InputField from '../InputField';
-import ErrorMessage from '../ErrorMessage';
-import Button from '../Button';
+import React, { useState } from "react";
+import { loginUser } from "../services/authService";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import InputField from "../InputField";
+import ErrorMessage from "../ErrorMessage";
+import Button from "../Button";
 
 const LoginForm = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
       const userData = await loginUser(username, password);
       login(userData);
 
-      const role = userData.roleMessage?.split(':')[1]?.trim().toUpperCase();
+      const role = userData.roleMessage?.split(":")[1]?.trim().toUpperCase();
 
-      if (role === 'ADMIN') {
-        navigate('/admin');
+      if (role === "ADMIN") {
+        navigate("/admin");
       } else {
-        navigate('/home', { state: { role } });
+        navigate("/home", { state: { role } });
       }
     } catch (err) {
-      setError('Invalid credentials, please try again.');
+      setError("Invalid credentials, please try again.");
     }
   };
 
-  const handleNavigateToRegister = () => {
-    navigate('/create-user');
-  };
+  // Navigation handlers grouped
+  const handleNavigateToRegister = () => navigate("/create-user");
+  const handleNavigateToForgotLogin = () => navigate("/forgot-login");
 
   return (
     <div>
@@ -61,13 +60,15 @@ const LoginForm = () => {
         <ErrorMessage message={error} />
         <Button type="submit">Login</Button>
       </form>
-      <div style={{ marginTop: '1rem' }}>
+
+      <div style={{ marginTop: "1rem" }}>
         <Button type="button" onClick={handleNavigateToRegister}>
           Register New User
         </Button>
       </div>
-      <div style={{ marginTop: '1rem' }}>
-        <Button type="button" onClick={handleNavigateToRegister}>
+
+      <div style={{ marginTop: "1rem" }}>
+        <Button type="button" onClick={handleNavigateToForgotLogin}>
           Forgot My Password
         </Button>
       </div>
