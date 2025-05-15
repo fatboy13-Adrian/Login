@@ -50,7 +50,7 @@ public class AuthService
         String welcomeMessage = "Welcome, " + user.getUsername() + "! Your role is: " + user.getRole().name();
 
         //Return AuthResponseDTO containing the token, success message, and role-based welcome message
-        return AuthResponseDTO.builder().token(token).message("Authentication successful").roleMessage(welcomeMessage).build();
+        return AuthResponseDTO.builder().token(token).message("Authentication successful").roleMessage(welcomeMessage).userId(user.getUserId()).build();
     }
 
     //Allow user to reset username and password by providing their email address
