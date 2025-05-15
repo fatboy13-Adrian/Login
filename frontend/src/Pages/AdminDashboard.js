@@ -1,19 +1,21 @@
 // src/components/AdminDashboard.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // React Router hook
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
+  const navigate = useNavigate(); // for routing
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/users", {
-        withCredentials: true, // include auth cookies if needed
+      const response = await axios.get('http://localhost:8080/users', {
+        withCredentials: true,
       });
       setUsers(response.data);
     } catch (err) {
-      setError("Failed to fetch users. " + (err.response?.data || err.message));
+      setError('Failed to fetch users. ' + (err.response?.data || err.message));
     }
   };
 
@@ -24,8 +26,13 @@ const AdminDashboard = () => {
       });
       setUsers(users.filter((user) => user.userId !== userId));
     } catch (err) {
-      alert("Failed to delete user: " + (err.response?.data || err.message));
+      alert('Failed to delete user: ' + (err.response?.data || err.message));
     }
+  };
+
+  const handleLogout = () => {
+    // optional: clear tokens/session/etc. if needed
+    navigate('/login'); // redirect to login page
   };
 
   useEffect(() => {
@@ -72,6 +79,16 @@ const AdminDashboard = () => {
           )}
         </tbody>
       </table>
+
+      {/* Logout Button */}
+      <div className="mt-6 text-center">
+        <button
+          onClick={handleLogout}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 };
