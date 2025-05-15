@@ -1,184 +1,273 @@
-package com.user.login.Controller;                      //Package declaration for the UserController tests
-import com.user.login.DTO.UserDTO;                      //DTO representing user data (e.g., username, email, etc.)
-import com.user.login.Exception.UserNotFoundException;  //Custom exception thrown when a user is not found
-import com.user.login.Service.UserService;              //Service class responsible for user-related operations
-import com.user.login.Enum.Role;                        //Enum representing the user's role (e.g., CUSTOMER, ADMIN)
-import org.junit.jupiter.api.BeforeEach;                //JUnit annotation for setting up before each test
-import org.junit.jupiter.api.Test;                      //JUnit annotation to define a test method
-import org.junit.jupiter.api.extension.ExtendWith;      //JUnit annotation to extend test functionality
-import static org.junit.jupiter.api.Assertions.*;       //JUnit assertions to validate test results
-import static org.mockito.Mockito.*;                    //Mockito static methods to mock behavior
-import java.util.Collections;                           //Utility class for creating immutable collections like singleton lists for testing purposes
-import org.mockito.InjectMocks;                         //To inject mocks into the class under test
-import org.mockito.Mock;                                //Annotation to mock dependencies
-import org.mockito.junit.jupiter.MockitoExtension;      //Extension for integrating Mockito with JUnit
-import org.springframework.http.HttpStatus;             //HTTP Status for assertions
-import org.springframework.http.ResponseEntity;         //ResponseEntity for HTTP response handling
+package com.user.login.Controller;                      //Package declaration for controller tests
+import com.user.login.DTO.UserDTO;                      //Import UserDTO for user data representation
+import com.user.login.Exception.UserNotFoundException;  //Import exception for user-not-found scenario
+import com.user.login.Service.UserService;              //Import UserService to mock business logic
+import com.user.login.Enum.Role;                        //Import Role enum for user roles
+import org.junit.jupiter.api.BeforeEach;                //Import for setup method before each test
+import org.junit.jupiter.api.Test;                      //Import annotation to define test methods
+import org.junit.jupiter.api.extension.ExtendWith;      //Import to extend test class with mock support
+import static org.junit.jupiter.api.Assertions.*;       //Import JUnit assertions
+import static org.mockito.Mockito.*;                    //Import Mockito methods for mocking
+import java.util.Collections;                           //Import utility class for creating singleton lists
+import org.mockito.InjectMocks;                         //Annotation to inject mocks into test subject
+import org.mockito.Mock;                                //Annotation to define mock dependencies
+import org.mockito.junit.jupiter.MockitoExtension;      //Extension to enable Mockito with JUnit 5
+import org.springframework.http.HttpStatus;             //Import HTTP status codes
+import org.springframework.http.ResponseEntity;         //Import class to wrap HTTP responses
 
-@ExtendWith(MockitoExtension.class) //Extend test class with Mockito functionality for mocking
+@ExtendWith(MockitoExtension.class) //Enable Mockito in JUnit 5 tests
 public class UserControllerTest 
 {
     @Mock
-    private UserService userService;        //Mock the UserService class (dependency of UserController)
+    private UserService userService;        //Mocked UserService dependency
 
     @InjectMocks
-    private UserController userController;  //Inject the mocked UserService into UserController
+    private UserController userController;  //Controller under test with mock dependencies injected
 
-    private UserDTO userDTO;                //DTO to hold mock user data for the tests
+    private UserDTO userDTO;                //Sample UserDTO object for test cases
 
-    @BeforeEach //Method to set up the common test data before each test runs
+    @BeforeEach
     public void setUp() 
     {
+        //Initialize userDTO with test values before each test
         userDTO = UserDTO.builder().userId(1L).username("testUser").email("test@example.com")
         .homeAddress("123 Street").password("password123").role(Role.CUSTOMER).build();
     }
 
-    @Test   //POSITIVE TEST - Test case for successfully creating a user
+    @Test
     public void testCreateUser_Success() 
     {
-        //Arrange: Mock the UserService.createUser() method to return the mock userDTO
+        //Simulate successful user creation
         when(userService.createUser(any(UserDTO.class))).thenReturn(userDTO);
 
-        //Act: Call the createUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.createUser(userDTO);
 
-        //Assert: Validate the HTTP status and response body
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());                                     //Status should be 201 CREATED
-        assertEquals(userDTO, response.getBody());                                                      //Response body should match the mock userDTO
-        verify(userService, times(1)).createUser(any(UserDTO.class));   //Verify that createUser was called once
+        //Assert correct response status and body
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(userDTO, response.getBody());
+
+        //Verify service method was called once
+        verify(userService, times(1)).createUser(any(UserDTO.class));
     }
 
-    @Test   //NEGATIVE TEST - Test case for failure when creating a user
+    @Test
     public void testCreateUser_Failure() 
     {
-        //Arrange: Mock the UserService.createUser() method to throw an exception
+        //Simulate exception during user creation
         when(userService.createUser(any(UserDTO.class))).thenThrow(new RuntimeException("Service Error"));
 
-        //Act: Call the createUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.createUser(userDTO);
 
-        //Assert: Validate the HTTP status and error message
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());                       //Status should be 500 INTERNAL SERVER ERROR
-        assertTrue(response.getBody().toString().contains("Failed to create user"));                //Error message should contain the failure message
-        verify(userService, times(1)).createUser(any(UserDTO.class));   //Verify that createUser was called once
+        //Assert internal server error and error message
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Failed to create user"));
+
+        //Verify service method was called once
+        verify(userService, times(1)).createUser(any(UserDTO.class));
     }
 
-    @Test   //POSITIVE TEST - Test case for successfully retrieving a user by ID
+    @Test
     public void testGetUser_Success() 
     {
-        //Arrange: Mock the UserService.getUser() method to return the mock userDTO
+        //Simulate successful user retrieval
         when(userService.getUser(anyLong())).thenReturn(userDTO);
 
-        //Act: Call the getUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.getUser(1L);
 
-        //Assert: Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                          //Status should be 200 OK
-        assertEquals(userDTO, response.getBody());                                  //Response body should match the mock userDTO
-        verify(userService, times(1)).getUser(1L);  //Verify that getUser was called once
+        //Assert success response and returned user
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userDTO, response.getBody());
+
+        //Verify correct method call
+        verify(userService, times(1)).getUser(1L);
     }
 
-    @Test   //NEGATIVE TEST - Test case for user not found when retrieving by ID
+    @Test
     public void testGetUser_UserNotFound() 
     {
-        //Arrange: Mock the UserService.getUser() method to throw UserNotFoundException
+        //Simulate user not found scenario
         when(userService.getUser(anyLong())).thenThrow(new UserNotFoundException("User not found"));
 
-        //Act: Call the getUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.getUser(1L);
 
-        //Assert: Validate the HTTP status and error message
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());               //Status should be 404 NOT FOUND
-        assertTrue(response.getBody().toString().contains("User not found"));       //Error message should indicate user not found
-        verify(userService, times(1)).getUser(1L);  //Verify that getUser was called once
+        //Assert 404 response and message
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("User not found"));
+
+        //Verify service method call
+        verify(userService, times(1)).getUser(1L);
     }
 
-    @Test   //POSITIVE TEST - Test case for successfully retrieving all users
+    @Test
     public void testGetUsers_Success() 
     {
-        //Arrange: Mock the UserService.getUsers() method to return a list containing the mock userDTO
+        //Simulate fetching list of users
         when(userService.getUsers()).thenReturn(Collections.singletonList(userDTO));
 
-        //Act: Call the getUsers method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.getUsers();
 
-        //Assert: Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                      //Status should be 200 OK
-        assertTrue(((java.util.List<?>) response.getBody()).contains(userDTO)); //Response body should contain the mock userDTO
-        verify(userService, times(1)).getUsers();       //Verify that getUsers was called once
+        //Assert response contains userDTO
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(((java.util.List<?>) response.getBody()).contains(userDTO));
+
+        //Verify service method call
+        verify(userService, times(1)).getUsers();
     }
 
-    @Test   //NEGATIVE TEST - Test case for failure when retrieving users
+    @Test
     public void testGetUsers_Failure() 
     {
-        //Arrange: Mock the UserService.getUsers() method to throw an exception
+        //Simulate error during fetching users
         when(userService.getUsers()).thenThrow(new RuntimeException("Service Error"));
 
-        //Act: Call the getUsers method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.getUsers();
 
-        //Assert: Validate the HTTP status and error message
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());       //Status should be 500 INTERNAL SERVER ERROR
-        assertTrue(response.getBody().toString().contains("Failed to get users"));  //Error message should indicate failure
-        verify(userService, times(1)).getUsers();           //Verify that getUsers was called once
+        //Assert internal server error and message
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Failed to get users"));
+
+        //Verify service method call
+        verify(userService, times(1)).getUsers();
     }
 
-    @Test   //POSITIVE TEST - Test case for successfully updating a user
+    @Test
     public void testUpdateUser_Success() 
     {
-        //Arrange: Mock the UserService.updateUser() method to return the mock userDTO
+        //Simulate successful user update
         when(userService.updateUser(anyLong(), any(UserDTO.class))).thenReturn(userDTO);
 
-        //Act: Call the updateUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.updateUser(1L, userDTO);
 
-        //Assert: Validate the HTTP status and response body
-        assertEquals(HttpStatus.OK, response.getStatusCode());                                                      //Status should be 200 OK
-        assertEquals(userDTO, response.getBody());                                                                  //Response body should match the mock userDTO
-        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));    //Verify that updateUser was called once
+        //Assert response with updated user
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userDTO, response.getBody());
+
+        //Verify update call
+        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
     }
 
-    @Test   //NEGATIVE TEST - Test case for user not found when updating
+    @Test
     public void testUpdateUser_UserNotFound() 
     {
-        //Arrange: Mock the UserService.updateUser() method to throw UserNotFoundException
+        //Simulate update with user not found
         when(userService.updateUser(anyLong(), any(UserDTO.class))).thenThrow(new UserNotFoundException("User not found"));
 
-        //Act: Call the updateUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.updateUser(1L, userDTO);
 
-        //Assert: Validate the HTTP status and error message
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());                                               //Status should be 404 NOT FOUND
-        assertTrue(response.getBody().toString().contains("User not found"));                                   //Error message should indicate user not found
-        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));    //Verify that updateUser was called once
+        //Assert 404 response
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("User not found"));
+
+        //Verify update call
+        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
     }
 
-    @Test   //POSITIVE TEST - Test case for successfully deleting a user
+    @Test
     public void testDeleteUser_Success() 
     {
-        //Arrange: Mock the UserService.deleteUser() method to do nothing
+        //Simulate successful delete
         doNothing().when(userService).deleteUser(anyLong());
 
-        //Act: Call the deleteUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.deleteUser(1L);
 
-        //Assert: Validate the HTTP status
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());                  //Status should be 204 NO CONTENT
-        verify(userService, times(1)).deleteUser(1L);   //Verify that deleteUser was called once
+        //Assert 204 No Content
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+
+        //Verify delete method call
+        verify(userService, times(1)).deleteUser(1L);
     }
 
-    @Test   //NEGATIVE TEST - Test case for user not found when deleting
+    @Test
     public void testDeleteUser_UserNotFound() 
     {
-        //Arrange: Mock the UserService.deleteUser() method to throw UserNotFoundException
+        //Simulate delete with user not found
         doThrow(new UserNotFoundException("User not found")).when(userService).deleteUser(anyLong());
 
-        //Act: Call the deleteUser method in UserController
+        //Call controller method
         ResponseEntity<?> response = userController.deleteUser(1L);
 
-        //Assert: Validate the HTTP status and error message
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());                   //Status should be 404 NOT FOUND
-        assertTrue(response.getBody().toString().contains("User not found"));           //Error message should indicate user not found
-        verify(userService, times(1)).deleteUser(1L);   //Verify that deleteUser was called once
+        //Assert 404 response
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("User not found"));
+
+        //Verify delete method call
+        verify(userService, times(1)).deleteUser(1L);
+    }
+
+    @Test
+    public void testGetCurrentUser_Success() 
+    {
+        //Simulate successful fetch of current user
+        when(userService.getCurrentUser()).thenReturn(userDTO);
+
+        //Call controller method
+        ResponseEntity<?> response = userController.getCurrentUser();
+
+        //Assert 200 OK and correct user
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userDTO, response.getBody());
+
+        //Verify service method call
+        verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testGetCurrentUser_Failure() 
+    {
+        //Simulate failure fetching current user
+        when(userService.getCurrentUser()).thenThrow(new RuntimeException("Service Error"));
+
+        //Call controller method
+        ResponseEntity<?> response = userController.getCurrentUser();
+
+        //Assert internal server error
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Failed to get current user"));
+
+        //Verify service method call
+        verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testGetAuthenticatedUsername_Success() 
+    {
+        //Simulate fetching username
+        when(userService.getAuthenticatedUsername()).thenReturn("testUser");
+
+        //Call controller method
+        ResponseEntity<?> response = userController.getAuthenticatedUsername();
+
+        //Assert username in response
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("testUser", response.getBody());
+
+        //Verify method call
+        verify(userService, times(1)).getAuthenticatedUsername();
+    }
+
+    @Test
+    public void testGetAuthenticatedUsername_Failure() 
+    {
+        //Simulate failure in fetching username
+        when(userService.getAuthenticatedUsername()).thenThrow(new RuntimeException("Service Error"));
+
+        //Call controller method
+        ResponseEntity<?> response = userController.getAuthenticatedUsername();
+
+        //Assert internal server error
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertTrue(response.getBody().toString().contains("Failed to get username"));
+
+        //Verify method call
+        verify(userService, times(1)).getAuthenticatedUsername();
     }
 }

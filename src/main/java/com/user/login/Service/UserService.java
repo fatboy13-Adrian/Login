@@ -1,155 +1,152 @@
-package com.user.login.Service;                                         //Package declaration for service layer
-import com.user.login.DTO.UserDTO;                                      //Data transfer object (DTO) for User entity
-import com.user.login.Entity.User;                                      //Entity representing the User
-import com.user.login.Exception.EmailAlreadyExistsException;            //Custom exception for email duplication
-import com.user.login.Exception.UserNotFoundException;                  //Custom exception for when a user is not found
-import com.user.login.Exception.UsernameAlreadyExistsException;         //Custom exception for username duplication
-import com.user.login.Interface.UserInterface;                          //Interface defining the user service methods
-import com.user.login.Mapper.UserMapper;                                //Mapper for converting between User entity and UserDTO
-import com.user.login.Repository.UserRepository;                        //Repository interface for user data persistence
-import lombok.RequiredArgsConstructor;                                  //Automatically generates constructor for dependencies
-import org.springframework.security.core.Authentication;                //Class for authentication details
-import org.springframework.security.core.context.SecurityContextHolder; //Provides access to the security context
-import org.springframework.security.crypto.password.PasswordEncoder;    //Import for encoding passwords securely
-import org.springframework.beans.factory.annotation.Autowired;          //Import for dependency injection of beans
-import org.springframework.security.access.AccessDeniedException;       //Exception thrown when access is denied
-import org.springframework.stereotype.Service;                          //Marks this class as a service to be managed by Spring
-import java.util.List;                                                  //List for managing collections of users
-import java.util.stream.Collectors;                                     //For converting streams into lists
+package com.user.login.Service;                                         //Package declaration for the service class
+import com.user.login.DTO.UserDTO;                                      //Import DTO class used to transfer user data between layers
+import com.user.login.Entity.User;                                      //Import User entity representing the database table
+import com.user.login.Exception.EmailAlreadyExistsException;            //Custom exception when email already exists
+import com.user.login.Exception.UserNotFoundException;                  //Custom exception when user ID is not found
+import com.user.login.Exception.UsernameAlreadyExistsException;         //Custom exception when username already exists
+import com.user.login.Exception.UsernameNotFoundException;              //Custom exception when username is not found
+import com.user.login.Interface.UserInterface;                          //Interface defining user-related operations
+import com.user.login.Mapper.UserMapper;                                //Mapper class for converting between User and UserDTO
+import com.user.login.Repository.UserRepository;                        //Repository interface for CRUD operations on User entities
+import lombok.RequiredArgsConstructor;                                  //Lombok annotation to generate constructor with required arguments (final fields)
+import org.springframework.security.access.AccessDeniedException;       //Spring Security exception for unauthorized access
+import org.springframework.security.core.Authentication;                //Represents the current authenticated user
+import org.springframework.security.core.context.SecurityContextHolder; //Retrieves authentication from the security context
+import org.springframework.security.crypto.password.PasswordEncoder;    //Spring Security component for encoding passwords
+import org.springframework.stereotype.Service;                          //Marks this class as a Spring service
+import java.util.Optional;                                              //Java utility for working with optional values
+import java.util.List;                                                  //Java utility for working with collections
+import java.util.stream.Collectors;                                     //Java utility for transforming collections
 
-@Service                    //Marks this class as a service to be managed by Spring
-@RequiredArgsConstructor    //Automatically generates constructor with required dependencies
+@Service                    //Defines this class as a Spring-managed service component
+@RequiredArgsConstructor    //Generates constructor for all final fields (dependency injection)
 public class UserService implements UserInterface 
 {
-    private final UserRepository userRepository;   //Repository for accessing user data
+    private final UserRepository userRepository;    //Handles DB operations for User
+    private final UserMapper userMapper;            //Converts between User and UserDTO
+    private final PasswordEncoder passwordEncoder;  //Encodes passwords securely
 
-    @Autowired
-    private final UserMapper userMapper;           //Mapper to convert between User and UserDTO
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Override  //Creates a new user after validating username and email (Open to all)
+    @Override
     public UserDTO createUser(UserDTO userDTO) 
     {
-        //Check if the username already exists in the repository
+        //Check if username already exists
         if(userRepository.existsByUsername(userDTO.getUsername()))
-            throw new UsernameAlreadyExistsException(userDTO.getUsername());    //Throw exception ifusername exists
-
-        //Check if the email already exists in the repository
+            throw new UsernameAlreadyExistsException(userDTO.getUsername());
+        
+        //Check if email already exists
         if(userRepository.existsByEmail(userDTO.getEmail())) 
-            throw new EmailAlreadyExistsException(userDTO.getEmail());          //Throw exception ifemail exists
-
-        String encodedPassword = passwordEncoder.encode(userDTO.getPassword()); //Hash and encode the password before saving new user account into DB.
-        userDTO.setPassword(encodedPassword);                                   //Set the encoded password back into the DTO
-        User user = userMapper.toEntity(userDTO);                               //Convert DTO to entity
-        User savedUser = userRepository.save(user);                             //Save the user entity to the database
-        return userMapper.toDTO(savedUser);                                     //Return the saved user as DTO
+            throw new EmailAlreadyExistsException(userDTO.getEmail());
+        
+        userDTO.setPassword(passwordEncoder.encode(userDTO.getPassword())); //Encode the password before saving
+        User savedUser = userRepository.save(userMapper.toEntity(userDTO)); //Convert DTO to entity and save
+        return userMapper.toDTO(savedUser);                                 //Return the saved user as DTO
     }
 
-    @Override  //Retrieve a user by their ID (Only can see your own user details)
+    @Override
     public UserDTO getUser(Long userId) 
     {
-        checkUserOrAdminAuthorization(userId);  //Admin will have full acecss while other roles can only access their own user account  
-        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId.toString()));    //Find the user or throw exception
-        return userMapper.toDTO(user);          //Return the found user as DTO
+        authorizeUserOrAdmin(userId);                   //Allow access only to admin or the user themselves
+        return userMapper.toDTO(findUserById(userId));  //Fetch and return user as DTO
     }
 
-    @Override  //Retrieve all users and return them as a list of DTOs (Only Admin have the access rights)
+    @Override
     public List<UserDTO> getUsers() 
     {
-        checkAdminAuthorization();  //Ensure only an admin can access all users
-        return userRepository.findAll().stream().map(userMapper::toDTO).collect(Collectors.toList());   //Convert all users to DTOs and return
+        authorizeAdmin();   //Only admin can retrieve all users
+
+        //Fetch all users and convert to DTO list
+        return userRepository.findAll().stream().map(userMapper::toDTO).collect(Collectors.toList());
     }
 
-    @Override   //Update an existing user's details (Only can update your own user details)
+    @Override
     public UserDTO updateUser(Long userId, UserDTO userDTO) 
     {
-        checkUserByIdAuthorization(userId); //Ensure the authenticated user has permission to update this user
+        authorizeSelf(userId);              //Allow update only by the user themselves
+        User user = findUserById(userId);   //Fetch the user to update
 
-        //Find the existing user by ID, or throw exception ifnot found
-        User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId.toString()));
-
-        //Partial update logic for different fields of the user
-        if(userDTO.getUsername() != null) 
-            existingUser.setUsername(userDTO.getUsername());                        //Update username if provided
-        
-        if(userDTO.getEmail() != null) 
-            existingUser.setEmail(userDTO.getEmail());                              //Update email if provided
-        
-        if(userDTO.getHomeAddress() != null) 
-            existingUser.setHomeAddress(userDTO.getHomeAddress());                  //Update home address if provided
-        
-        if(userDTO.getPassword() != null) 
-        {
-            String encodedPassword = passwordEncoder.encode(userDTO.getPassword()); //Encode the new password before saving it     
-            existingUser.setPassword(encodedPassword);                              //Update password with the encoded one
-        }
-
-        User updatedUser = userRepository.save(existingUser);                       //Save the updated user entity to the database
-        return userMapper.toDTO(updatedUser);                                       //Return the updated user as DTO
+        //Conditionally update fields if provided
+        Optional.ofNullable(userDTO.getUsername()).ifPresent(user::setUsername);
+        Optional.ofNullable(userDTO.getEmail()).ifPresent(user::setEmail);
+        Optional.ofNullable(userDTO.getHomeAddress()).ifPresent(user::setHomeAddress);
+        Optional.ofNullable(userDTO.getPassword()).ifPresent(pwd -> user.setPassword(passwordEncoder.encode(pwd)));
+        return userMapper.toDTO(userRepository.save(user)); //Save updated user and return as DTO
     }
 
-    @Override  //Delete a user by their ID (Only admin have the access rights)
+    @Override
     public void deleteUser(Long userId) 
     {
-        checkAdminAuthorization();  //Ensure only an admin can delete users
-        
-        //Check ifthe user exists by ID, otherwise throw an exception
-        if(!userRepository.existsById(userId)) 
+        authorizeAdmin();   //Only admin can delete users
+
+        //Check if user exists before deleting
+        if(!userRepository.existsById(userId))
             throw new UserNotFoundException(userId.toString());
         
-        userRepository.deleteById(userId);  //Delete the user by ID
+        userRepository.deleteById(userId);  //Delete user by ID
     }
 
-    private String getAuthenticatedUsername() 
+    public String getAuthenticatedUsername() 
     {
-        //Retrieve the authentication object from the security context
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        //if no authentication or not authenticated, throw an exception
-        if(authentication == null || !authentication.isAuthenticated()) 
+        //Retrieve authentication context
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        //If not authenticated, throw exception
+        if(auth == null || !auth.isAuthenticated()) 
             throw new AccessDeniedException("User not authenticated");
-        
-        return authentication.getName();    //Return the username of the authenticated user
+             
+        return auth.getName();  //Return current username
     }
 
-    private void checkUserByIdAuthorization(Long userId) 
+    public UserDTO getCurrentUser() 
     {
-        //Retrieve the authenticated user's username
-        String authUsername = getAuthenticatedUsername();
-        
-        //Fetch the user details using the username
-        User authenticatedUser = userRepository.findByUsername(authUsername).orElseThrow(() -> new UserNotFoundException(authUsername));
-
-        //Check if the authenticated user matches the requested user ID
-        if(!userId.equals(authenticatedUser.getUserId())) 
-            throw new AccessDeniedException("You are not authorized to access this user data.");
+        //Get current authenticated user and convert to DTO
+        User user = findUserByUsername(getAuthenticatedUsername());
+        return userMapper.toDTO(user);
     }
 
-    private void checkAdminAuthorization() 
+    //Authorization and Lookup Helpers
+    private void authorizeAdmin() 
     {
-        //Retrieve the authenticated user's username from security context
-        String authUsername = getAuthenticatedUsername();
-        
-        //Check if the logged-in user is 'admin'
-        if(!"admin".equals(authUsername)) 
+        //Throw exception if current user is not admin
+        if(!isAdmin())
             throw new AccessDeniedException("Only 'admin' can access this resource.");
     }
 
-    private void checkUserOrAdminAuthorization(Long userId) 
+    private void authorizeSelf(Long userId) 
     {
-        //Retrieve the authenticated user's username from security context
-        String authUsername = getAuthenticatedUsername();
+        //Get currently authenticated user
+        if(!userId.equals(getAuthenticatedUser().getUserId()))
+            throw new AccessDeniedException("You are not authorized to modify this user.");
+    }
 
-        //Fetch the full authenticated User object using the username and throws a custom exception if user is not found in database
-        User authenticatedUser = userRepository.findByUsername(authUsername).orElseThrow(() -> new UserNotFoundException(authUsername));
+    private void authorizeUserOrAdmin(Long userId) 
+    {
+        //Allow access if current user is owner or admin
+        User currentUser = getAuthenticatedUser();
+        boolean isOwner = userId.equals(currentUser.getUserId());
 
-        boolean isAdmin = "admin".equals(authUsername);                      //Check if the authenticated user is an admin by comparing username to "admin"
-        boolean isOwner = userId.equals(authenticatedUser.getUserId());     //Check if the authenticated user's ID matches the requested user ID
-
-        //If user is neither admin nor owner of the requested user data, deny access
-        if(!isAdmin && !isOwner) 
+        if(!isOwner && !isAdmin()) 
             throw new AccessDeniedException("You are not authorized to access this user data.");
+    }
+
+    private User getAuthenticatedUser() 
+    {
+        return findUserByUsername(getAuthenticatedUsername());  //Return current authenticated user entity
+    }
+
+    private boolean isAdmin() 
+    {
+        return "admin".equals(getAuthenticatedUsername());      //Check if current username is 'admin'
+    }
+
+    private User findUserById(Long userId) 
+    {
+        //Lookup user by ID or throw not found exception
+        return userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId.toString()));
+    }
+
+    private User findUserByUsername(String username) 
+    {
+        //Lookup user by username or throw not found exception
+        return userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException(username));
     }
 }

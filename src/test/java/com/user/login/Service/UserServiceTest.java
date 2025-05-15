@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;                      //Import
 import org.springframework.security.access.AccessDeniedException;       //Thrown when access is denied
 import org.springframework.security.core.Authentication;                //Represents the authentication token
 import org.springframework.security.core.context.SecurityContextHolder; //Holds the security context
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContext;       //Interface for accessing security context
 import java.util.*;                                                     //Imports utility classes like Optional, List, Arrays
 import static org.junit.jupiter.api.Assertions.*;                       //Static imports for assertions
@@ -38,6 +39,9 @@ class UserServiceTest
 
     @Mock
     private Authentication authentication;      //Mock for authentication details
+
+    @Mock
+    private PasswordEncoder passwordEncoder; 
 
     @BeforeEach
     void setUp() 
@@ -68,19 +72,21 @@ class UserServiceTest
     @Test
     void createUser_shouldSaveAndReturnUser() 
     {
-        UserDTO dto = new UserDTO();                                                            //Input DTO
+        UserDTO dto = new UserDTO();                                                                        //Input DTO
         dto.setUsername("new");
         dto.setEmail("new@example.com");
-        User userEntity = new User(); //Entity created from DTO
-        User savedUser = new User(); //Entity returned from DB
-        UserDTO savedDto = new UserDTO(); //Final result DTO
-        when(userRepository.existsByUsername("new")).thenReturn(false);             //No duplicate username
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);    //No duplicate email
-        when(userMapper.toEntity(dto)).thenReturn(userEntity);                                  //Map DTO to entity
-        when(userRepository.save(userEntity)).thenReturn(savedUser);                                //Save user entity
-        when(userMapper.toDTO(savedUser)).thenReturn(savedDto);                                     //Map back to DTO
-        UserDTO result = userService.createUser(dto);                                           //Call method
-        assertEquals(savedDto, result);                                                         //Assert result matches
+        dto.setPassword("plainPassword");                                                           //Password before encoding
+        User userEntity = new User();                                                                       //Entity from DTO
+        User savedUser = new User();                                                                        //Entity after save
+        UserDTO savedDto = new UserDTO();                                                                   //DTO after save
+        when(userRepository.existsByUsername("new")).thenReturn(false);                     //No username conflict
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);                //No email conflict
+        when(passwordEncoder.encode("plainPassword")).thenReturn("encodedPassword");    //Mock encoding
+        when(userMapper.toEntity(dto)).thenReturn(userEntity);                                              //Map DTO to entity
+        when(userRepository.save(userEntity)).thenReturn(savedUser);                                        //Save entity
+        when(userMapper.toDTO(savedUser)).thenReturn(savedDto);                                             //Map entity to DTO
+        UserDTO result = userService.createUser(dto);                                                       //Call service method
+        assertEquals(savedDto, result);                                                                     //Verify result
     }
 
     @Test
