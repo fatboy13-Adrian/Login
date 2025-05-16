@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-
+import GetUser from './Pages/GetUser';
 import LoginForm from './components/Auth/LoginForm';
 import ForgotLogin from './components/Auth/ForgotLogin';
 import Home from './components/Home/Home';
@@ -29,6 +29,14 @@ const AppRoutes = () => (
         <AdminDashboard />
       </ProtectedRoute>
     } />
+    <Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <GetUser />
+    </ProtectedRoute>
+  }
+/>
 
     {/* Catch-all route to redirect unknown paths */}
     <Route path="*" element={<Navigate to="/login" replace />} />

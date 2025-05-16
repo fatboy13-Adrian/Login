@@ -1,69 +1,90 @@
-package com.user.login.Security.Config;                                                                     //Package declaration
-import org.springframework.context.annotation.Bean;                                                         //To declare beans in Spring
-import org.springframework.context.annotation.Configuration;                                                //Marks this class as a configuration class
-import org.springframework.security.authentication.AuthenticationManager;                                   //Authentication manager for auth flow
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder; //Builder for custom authentication manager
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;                            //Used to configure HTTP security
-import org.springframework.security.core.userdetails.User;                                                  //Spring User class for creating user details
-import org.springframework.security.core.userdetails.UserDetailsService;                                    //Interface for user details service
-import org.springframework.security.core.userdetails.UsernameNotFoundException;                             //Exception thrown when username not found
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;                                //Factory for creating password encoders
-import org.springframework.security.crypto.password.PasswordEncoder;                                        //Interface for encoding passwords
-import org.springframework.security.web.SecurityFilterChain;                                                //Filter chain for HTTP security configuration
+package com.user.login.Security.Config;                                                                     //Declares the package for security configuration
+import java.util.Arrays;                                                                                    //Utility class used for array operations
+import org.springframework.context.annotation.Bean;                                                         //Enables creation of Spring beans
+import org.springframework.context.annotation.Configuration;                                                //Marks the class as a Spring configuration class
+import org.springframework.http.HttpMethod;                                                                 //Enum for HTTP methods
+import org.springframework.security.authentication.AuthenticationManager;                                   //Main interface for authentication processing
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder; //Helps build a custom AuthenticationManager
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;                            //Used to configure web security rules
+import org.springframework.security.core.userdetails.User;                                                  //Utility to build user details
+import org.springframework.security.core.userdetails.UserDetailsService;                                    //Interface to fetch user details from the DB
+import org.springframework.security.core.userdetails.UsernameNotFoundException;                             //Exception thrown if username is not found
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;                                //Factory to create password encoders
+import org.springframework.security.crypto.password.PasswordEncoder;                                        //Interface for password encoding
+import org.springframework.security.web.SecurityFilterChain;                                                //Defines the security filter chain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;                //Filter for username/password authentication
-import com.user.login.Repository.UserRepository;                                                            //User repository for user data retrieval
-import com.user.login.Security.JWT.JwtAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;                                                      //Represents CORS configuration
+import org.springframework.web.cors.CorsConfigurationSource;                                                //Source for CORS configuration
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;                                        //URL-based CORS config source
+import com.user.login.Repository.UserRepository;                                                            //JPA repository interface for user data
+import com.user.login.Security.JWT.JwtAuthenticationFilter;                                                 //Custom JWT authentication filter
 
-@Configuration  //Declares this as a configuration class for Spring
+@Configuration  //Indicates this class provides Spring Security configuration
 public class SecurityConfig 
 {
-    private final UserRepository userRepository;                    //User repository dependency
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;  //JWT filter dependency
+    private final UserRepository userRepository;                    //Dependency to access user data
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;  //Custom filter for handling JWTs
 
-    //Constructor to inject dependencies
+    //Constructor injection for dependencies
     public SecurityConfig(UserRepository userRepository, JwtAuthenticationFilter jwtAuthenticationFilter) 
     {
         this.userRepository = userRepository;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
-    @Bean   //Declares PasswordEncoder as a Spring bean
+    @Bean   //Declares PasswordEncoder bean
     public PasswordEncoder passwordEncoder() 
     {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();  //Returns the default password encoder
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();  //Returns a default delegating password encoder
     }
 
-    @Bean //Declares UserDetailsService as a Spring bean
+    @Bean   //Declares UserDetailsService bean
     public UserDetailsService userDetailsService() 
     {
-         //If found, build user details with roles and password
-        return username -> userRepository.findByUsername(username).map(user -> User.builder().username(user.getUsername()) 
+        //Returns lambda: retrieves user from DB and maps it to Spring Security's User object
+        return username -> userRepository.findByUsername(username).map(user -> User.builder().username(user.getUsername())
         .password(user.getPassword()).roles(user.getRole().name()).build()).orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
-    @Bean   //Declares AuthenticationManager as a Spring bean
+    @Bean   //Declares AuthenticationManager bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception 
     {
-        return http.getSharedObject(AuthenticationManagerBuilder.class)         //Retrieve AuthenticationManagerBuilder
-            .userDetailsService(userDetailsService()).passwordEncoder(passwordEncoder())  //Set the custom user details service and password encoder  
-            .and().build();                                                                 //Build and return the authentication manager
+        //Get AuthenticationManagerBuilder, set custom PasswordEncoder, build and return AuthenticationManager
+        return http.getSharedObject(AuthenticationManagerBuilder.class).userDetailsService(userDetailsService()) //Set custom UserDetailsService
+        .passwordEncoder(passwordEncoder()).and().build();
     }
 
-    @Bean //Declares SecurityFilterChain as a Spring bean
+    @Bean   //Declares SecurityFilterChain bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception 
     {
         http
-            .csrf().disable()// 🔐 Disable CSRF protection (usually disabled for stateless REST APIs using JWT)
-            .authorizeHttpRequests()// 🔒 Start configuring request authorization
-                .requestMatchers("/h2-console/**").permitAll()                                      //Allow unrestricted access to the H2 database console
-                .requestMatchers("/auth/protected")                                                 //Only users with specified roles can access this protected endpoint
-                    .hasAnyRole("CUSTOMER", "ADMIN", "WAREHOUSE_SUPERVISOR", "SALES_CLERK")
-                .anyRequest().permitAll()                                                                       //Allow all other requests without authentication (adjust as needed)
+            .cors()                                                                                             //Enables CORS configuration
             .and()
-            .headers().frameOptions().disable()                                                                 //Allow the H2 database console to be embedded in an iframe (prevents frame-related errors)
+            .csrf().disable()                                                                                   //Disables CSRF (suitable for APIs)
+            .authorizeHttpRequests()                                                                            //Begin URL authorization rules
+                .requestMatchers("/h2-console/**").permitAll()                                      //Allow H2 console access
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()                             //Allow all OPTIONS preflight requests
+                .requestMatchers("/auth/protected", "/users/me")                                    //Secure these endpoints
+                    .hasAnyRole("CUSTOMER", "ADMIN", "WAREHOUSE_SUPERVISOR", "SALES_CLERK")             //Require any of these roles
+                .anyRequest().permitAll()                                                                       //Allow all other requests as open access
             .and()
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);  //Add your custom JWT authentication filter *before* Spring’s default username/password filter
+            .headers().frameOptions().disable()                                                                 //Disable frameOptions (required for H2 console)
+            .and()
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);  //Insert JWT filter before default auth filter
 
-        return http.build();    //Build and return the configured SecurityFilterChain
+        return http.build();                                                                                    //Return built SecurityFilterChain
+    }
+
+    @Bean   //Declares CORS configuration source
+    public CorsConfigurationSource corsConfigurationSource() 
+    {
+        CorsConfiguration configuration = new CorsConfiguration();                                              //Create new CORS config
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));                            //Allow this origin
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); //Allow these HTTP methods
+        configuration.setAllowedHeaders(Arrays.asList("*"));                                                //Allow all headers
+        configuration.setAllowCredentials(true);                                                //Allow sending credentials (e.g. cookies)
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();                         //URL-mapped CORS source
+        source.registerCorsConfiguration("/**", configuration);                                         //Apply CORS config to all paths
+        return source;                                                                                          //Return the configuration source
     }
 }

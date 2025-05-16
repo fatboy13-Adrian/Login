@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;         //Wrap HTTP response dat
 import org.springframework.web.bind.annotation.*;       //Spring MVC annotations for REST controller and mappings
 import java.util.List;                                  //Java List collection for multiple users
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController             //Marks class as a REST controller
 @RequestMapping("/users")   //Base URL path for all endpoints in this controller
 @RequiredArgsConstructor    //Lombok auto-generates constructor for final fields
