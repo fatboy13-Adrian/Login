@@ -1,4 +1,5 @@
 package com.user.login.DTO.Auth;    //Declares the package that this class belongs to
+import com.user.login.DTO.UserDTO;  //Import DTO class used to transfer user data between layers
 import lombok.AllArgsConstructor;   //Generates a constructor with all arguments
 import lombok.Builder;              //Generates a builder for object creation
 import lombok.Getter;               //Generates getters for all fields
@@ -13,5 +14,6 @@ import lombok.Setter;               //Generates setters for all fields
 public class AuthResponseDTO 
 {
     private Long userId;                        //user ID variable for response
+    private UserDTO user;                       //User DTO for response
     private String token, message, roleMessage; //token, message and role message for response
 }

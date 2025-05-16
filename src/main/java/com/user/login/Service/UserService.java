@@ -1,5 +1,6 @@
 package com.user.login.Service;                                         //Package declaration for the service class
 import com.user.login.DTO.UserDTO;                                      //Import DTO class used to transfer user data between layers
+import com.user.login.DTO.Auth.AuthResponseDTO;                         //Imports the AuthResponseDTO for response data
 import com.user.login.Entity.User;                                      //Import User entity representing the database table
 import com.user.login.Exception.EmailAlreadyExistsException;            //Custom exception when email already exists
 import com.user.login.Exception.UserNotFoundException;                  //Custom exception when user ID is not found
@@ -8,6 +9,7 @@ import com.user.login.Exception.UsernameNotFoundException;              //Custom
 import com.user.login.Interface.UserInterface;                          //Interface defining user-related operations
 import com.user.login.Mapper.UserMapper;                                //Mapper class for converting between User and UserDTO
 import com.user.login.Repository.UserRepository;                        //Repository interface for CRUD operations on User entities
+import com.user.login.Security.JWT.JwtUtils;                            //Imports utility for JWT handling
 import lombok.RequiredArgsConstructor;                                  //Lombok annotation to generate constructor with required arguments (final fields)
 import org.springframework.security.access.AccessDeniedException;       //Spring Security exception for unauthorized access
 import org.springframework.security.core.Authentication;                //Represents the current authenticated user
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;                                     //Java u
 @RequiredArgsConstructor    //Generates constructor for all final fields (dependency injection)
 public class UserService implements UserInterface 
 {
+    private final JwtUtils jwtUtils;                
     private final UserRepository userRepository;    //Handles DB operations for User
     private final UserMapper userMapper;            //Converts between User and UserDTO
     private final PasswordEncoder passwordEncoder;  //Encodes passwords securely
@@ -59,17 +62,26 @@ public class UserService implements UserInterface
     }
 
     @Override
-    public UserDTO updateUser(Long userId, UserDTO userDTO) 
+    public AuthResponseDTO updateUser(Long userId, UserDTO userDTO) 
     {
-        authorizeSelf(userId);              //Allow update only by the user themselves
-        User user = findUserById(userId);   //Fetch the user to update
+        
+        authorizeSelf(userId);                                                          //Ensure the user is authorized to update their own information
+        User user = findUserById(userId);                                               //Retrieve the user entity from the database by ID
+        Optional.ofNullable(userDTO.getUsername()).ifPresent(user::setUsername);        //Update username if it's provided in the DTO
+        Optional.ofNullable(userDTO.getEmail()).ifPresent(user::setEmail);              //Update email if it's provided in the DTO
+        Optional.ofNullable(userDTO.getHomeAddress()).ifPresent(user::setHomeAddress);  //Update home address if it's provided in the DTO
 
-        //Conditionally update fields if provided
-        Optional.ofNullable(userDTO.getUsername()).ifPresent(user::setUsername);
-        Optional.ofNullable(userDTO.getEmail()).ifPresent(user::setEmail);
-        Optional.ofNullable(userDTO.getHomeAddress()).ifPresent(user::setHomeAddress);
+        //If a new password is provided, encrypt it and update
         Optional.ofNullable(userDTO.getPassword()).ifPresent(pwd -> user.setPassword(passwordEncoder.encode(pwd)));
-        return userMapper.toDTO(userRepository.save(user)); //Save updated user and return as DTO
+
+        User updatedUser = userRepository.save(user);                                   //Save the updated user entity to the database
+        UserDTO updatedUserDTO = userMapper.toDTO(updatedUser);                         //Convert the updated user entity to a DTO
+        List<String> roles = List.of(updatedUser.getRole().name());                     //Extract role(s) for JWT token creation; adjust if multiple roles exist
+        String token = jwtUtils.generateToken(updatedUser.getUsername(), roles);        //Generate a new JWT token with the updated username and roles
+
+        //Return a response DTO containing the updated user, token, and messages
+        return AuthResponseDTO.builder().userId(updatedUser.getUserId()).user(updatedUserDTO).token(token).message("User updated successfully")
+        .roleMessage("Role: " + updatedUser.getRole().name()).build();
     }
 
     @Override

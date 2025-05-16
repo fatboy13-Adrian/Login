@@ -1,5 +1,6 @@
 package com.user.login.Controller;                      //Package declaration for controller tests
 import com.user.login.DTO.UserDTO;                      //Import UserDTO for user data representation
+import com.user.login.DTO.Auth.AuthResponseDTO;         //Import AuthResponseDTO for authorization response
 import com.user.login.Exception.UserNotFoundException;  //Import exception for user-not-found scenario
 import com.user.login.Service.UserService;              //Import UserService to mock business logic
 import com.user.login.Enum.Role;                        //Import Role enum for user roles
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.BeforeEach;                //Import for setup metho
 import org.junit.jupiter.api.Test;                      //Import annotation to define test methods
 import org.junit.jupiter.api.extension.ExtendWith;      //Import to extend test class with mock support
 import static org.junit.jupiter.api.Assertions.*;       //Import JUnit assertions
+import static org.mockito.ArgumentMatchers.any;         //Imports ArgumentMatchers for mocking argument matching
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;                    //Import Mockito methods for mocking
 import java.util.Collections;                           //Import utility class for creating singleton lists
 import org.mockito.InjectMocks;                         //Annotation to inject mocks into test subject
@@ -137,21 +140,37 @@ public class UserControllerTest
     }
 
     @Test
-    public void testUpdateUser_Success() 
-    {
-        //Simulate successful user update
-        when(userService.updateUser(anyLong(), any(UserDTO.class))).thenReturn(userDTO);
+public void testUpdateUser_Success() 
+{
+    // Prepare a UserDTO object (you likely already have this)
+    UserDTO userDTO = new UserDTO();
+    userDTO.setUserId(1L);
+    userDTO.setUsername("testuser");
+    userDTO.setEmail("test@example.com");
+    // set other fields as needed
 
-        //Call controller method
-        ResponseEntity<?> response = userController.updateUser(1L, userDTO);
+    // Prepare a corresponding AuthResponseDTO that your service method returns
+    AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+            .userId(userDTO.getUserId())
+            .user(userDTO)
+            .token("dummyToken123")
+            .message("User updated successfully")
+            .roleMessage("Role: USER")
+            .build();
 
-        //Assert response with updated user
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(userDTO, response.getBody());
+    // Mock the service to return AuthResponseDTO
+    when(userService.updateUser(anyLong(), any(UserDTO.class))).thenReturn(authResponseDTO);
 
-        //Verify update call
-        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
-    }
+    // Call the controller method
+    ResponseEntity<?> response = userController.updateUser(1L, userDTO);
+
+    // Assert the response
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertEquals(authResponseDTO, response.getBody());
+
+    // Verify the service method was called once
+    verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
+}
 
     @Test
     public void testUpdateUser_UserNotFound() 
