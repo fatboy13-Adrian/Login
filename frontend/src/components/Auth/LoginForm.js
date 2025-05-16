@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { loginUser } from "../services/authService";
-import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import InputField from "../InputField";
 import ErrorMessage from "../ErrorMessage";
@@ -10,37 +9,47 @@ const LoginForm = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
       const userData = await loginUser(username, password);
-      login(userData);
 
+      // Extract values
+      const token = userData.token;
+      const userId = userData.userId;
       const role = userData.roleMessage?.split(":")[1]?.trim().toUpperCase();
 
+      if (!token || !userId || !role) {
+        throw new Error("Missing login data.");
+      }
+
+      // Store in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("role", role);
+
+      // Navigate based on role
       if (role === "ADMIN") {
         navigate("/admin");
       } else {
-        navigate("/home", { state: { role } });
+        navigate("/home"); // no need to pass state, you can get role from localStorage
       }
     } catch (err) {
-      setError("Invalid credentials, please try again.");
+      setError("Invalid credentials or server error.");
     }
   };
 
-  // Navigation handlers grouped
   const handleNavigateToRegister = () => navigate("/create-user");
   const handleNavigateToForgotLogin = () => navigate("/forgot-login");
 
   return (
     <div>
       <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleLogin}>
         <InputField
           id="username"
           label="Username"

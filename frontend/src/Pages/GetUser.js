@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const GetUser = ({ token }) => {
+const GetUser = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const authToken = token || localStorage.getItem('token');
+  // Get token from localStorage
+  const authToken = localStorage.getItem('token');
 
   useEffect(() => {
     if (!authToken) {
@@ -37,8 +38,11 @@ const GetUser = ({ token }) => {
   const goHome = () => navigate('/home');
 
   const handleLogout = () => {
-    localStorage.removeItem('token'); // remove token
-    navigate('/login'); // redirect to login
+    // Clear stored session data on logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    navigate('/login');
   };
 
   if (loading) return <p>Loading user data...</p>;
