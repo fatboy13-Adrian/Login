@@ -1,12 +1,11 @@
-package com.user.login.DTO;                     //Declares the package that this class belongs to
-import org.springframework.web.bind.annotation.CrossOrigin;
-
-import com.user.login.Enum.Role;                //Imports the Role enum used to define user roles
-import jakarta.validation.constraints.Email;    //Validates that the email format is correct
-import jakarta.validation.constraints.NotBlank; //Ensures the field is not null or empty
-import jakarta.validation.constraints.NotNull;  //Ensures the field is not null (used for non-String fields)
-import jakarta.validation.constraints.Size;     //Validates the length of a string
-import lombok.*;                                //Imports Lombok annotations to reduce boilerplate code (e.g., getters, setters, constructors)
+package com.user.login.DTO;                                 //Declares the package that this class belongs to
+import org.springframework.web.bind.annotation.CrossOrigin; //Enables CORS for cross-origin requests
+import com.user.login.Enum.Role;                            //Imports the Role enum used to define user roles
+import jakarta.validation.constraints.Email;                //Validates that the email format is correct
+import jakarta.validation.constraints.NotBlank;             //Ensures the field is not null or empty
+import jakarta.validation.constraints.NotNull;              //Ensures the field is not null (used for non-String fields)
+import jakarta.validation.constraints.Size;                 //Validates the length of a string
+import lombok.*;                                            //Imports Lombok annotations to reduce boilerplate code (e.g., getters, setters, constructors)
 
 @Getter             //Lombok: generates getter methods for all fields
 @Setter             //Lombok: generates setter methods for all fields

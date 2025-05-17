@@ -1,6 +1,6 @@
 package com.user.login.Controller;                      //Define package for UserController class
 import com.user.login.DTO.UserDTO;                      //Import UserDTO for user data transfer objects
-import com.user.login.DTO.Auth.AuthResponseDTO;
+import com.user.login.DTO.Auth.AuthResponseDTO;         //Import AuthResponseDTO for user data transfer objects
 import com.user.login.Exception.UserNotFoundException;  //Import custom exception for user not found cases
 import com.user.login.Service.UserService;              //Import service layer to handle user operations
 import lombok.RequiredArgsConstructor;                  //Lombok annotation to generate constructor for final fields

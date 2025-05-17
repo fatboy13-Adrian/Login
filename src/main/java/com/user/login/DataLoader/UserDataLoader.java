@@ -8,13 +8,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;    //For se
 import org.springframework.stereotype.Component;                        //Marks this class as a Spring-managed component
 
 @Component //Registers this class as a Spring Bean so it gets executed during application startup
-public class DataLoader implements CommandLineRunner 
+public class UserDataLoader implements CommandLineRunner 
 {
     private final UserRepository userRepository;    //Repository to perform CRUD operations on User
     private final PasswordEncoder passwordEncoder;  //Encoder to hash passwords securely
 
     @Autowired //Injects the dependencies via constructor
-    public DataLoader(UserRepository userRepository, PasswordEncoder passwordEncoder) 
+    public UserDataLoader(UserRepository userRepository, PasswordEncoder passwordEncoder) 
     {
         this.userRepository = userRepository;       //Assign injected UserRepository to local field
         this.passwordEncoder = passwordEncoder;     //Assign injected PasswordEncoder to local field

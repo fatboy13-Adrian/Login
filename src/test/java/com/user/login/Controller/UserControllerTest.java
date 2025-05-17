@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;                      //Import annotation to d
 import org.junit.jupiter.api.extension.ExtendWith;      //Import to extend test class with mock support
 import static org.junit.jupiter.api.Assertions.*;       //Import JUnit assertions
 import static org.mockito.ArgumentMatchers.any;         //Imports ArgumentMatchers for mocking argument matching
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyLong;     //Imports matcher for any long value in Mockito argument matching
 import static org.mockito.Mockito.*;                    //Import Mockito methods for mocking
 import java.util.Collections;                           //Import utility class for creating singleton lists
 import org.mockito.InjectMocks;                         //Annotation to inject mocks into test subject
@@ -140,37 +140,31 @@ public class UserControllerTest
     }
 
     @Test
-public void testUpdateUser_Success() 
-{
-    // Prepare a UserDTO object (you likely already have this)
-    UserDTO userDTO = new UserDTO();
-    userDTO.setUserId(1L);
-    userDTO.setUsername("testuser");
-    userDTO.setEmail("test@example.com");
-    // set other fields as needed
+    public void testUpdateUser_Success() 
+    {
+        //Prepare a UserDTO object (you likely already have this)
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUserId(1L);
+        userDTO.setUsername("testuser");
+        userDTO.setEmail("test@example.com");
 
-    // Prepare a corresponding AuthResponseDTO that your service method returns
-    AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
-            .userId(userDTO.getUserId())
-            .user(userDTO)
-            .token("dummyToken123")
-            .message("User updated successfully")
-            .roleMessage("Role: USER")
-            .build();
+        //Prepare a corresponding AuthResponseDTO that your service method returns
+        AuthResponseDTO authResponseDTO = AuthResponseDTO.builder().userId(userDTO.getUserId()).user(userDTO).token("dummyToken123")
+        .message("User updated successfully").roleMessage("Role: USER").build();
 
-    // Mock the service to return AuthResponseDTO
-    when(userService.updateUser(anyLong(), any(UserDTO.class))).thenReturn(authResponseDTO);
+        //Mock the service to return AuthResponseDTO
+        when(userService.updateUser(anyLong(), any(UserDTO.class))).thenReturn(authResponseDTO);
 
-    // Call the controller method
-    ResponseEntity<?> response = userController.updateUser(1L, userDTO);
+        //Call the controller method
+        ResponseEntity<?> response = userController.updateUser(1L, userDTO);
 
-    // Assert the response
-    assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(authResponseDTO, response.getBody());
+        //Assert the response
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(authResponseDTO, response.getBody());
 
-    // Verify the service method was called once
-    verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
-}
+        //Verify the service method was called once
+        verify(userService, times(1)).updateUser(anyLong(), any(UserDTO.class));
+    }
 
     @Test
     public void testUpdateUser_UserNotFound() 

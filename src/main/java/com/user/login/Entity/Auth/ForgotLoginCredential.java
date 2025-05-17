@@ -1,4 +1,4 @@
-package com.user.login.Entity.Auth;
+package com.user.login.Entity.Auth; //Declares the package that this class belongs to
 import lombok.AllArgsConstructor;   //Generates a constructor with all arguments
 import lombok.Builder;              //Generates a builder for object creation
 import lombok.Getter;               //Generates getters for all fields
