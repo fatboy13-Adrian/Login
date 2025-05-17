@@ -64,7 +64,6 @@ public class UserService implements UserInterface
     @Override
     public AuthResponseDTO updateUser(Long userId, UserDTO userDTO) 
     {
-        
         authorizeSelf(userId);                                                          //Ensure the user is authorized to update their own information
         User user = findUserById(userId);                                               //Retrieve the user entity from the database by ID
         Optional.ofNullable(userDTO.getUsername()).ifPresent(user::setUsername);        //Update username if it's provided in the DTO

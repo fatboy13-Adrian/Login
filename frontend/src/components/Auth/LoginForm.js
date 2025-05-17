@@ -18,7 +18,6 @@ const LoginForm = () => {
     try {
       const userData = await loginUser(username, password);
 
-      // Extract values
       const token = userData.token;
       const userId = userData.userId;
       const role = userData.roleMessage?.split(":")[1]?.trim().toUpperCase();
@@ -27,16 +26,14 @@ const LoginForm = () => {
         throw new Error("Missing login data.");
       }
 
-      // Store in localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
       localStorage.setItem("role", role);
 
-      // Navigate based on role
       if (role === "ADMIN") {
         navigate("/admin");
       } else {
-        navigate("/home"); // no need to pass state, you can get role from localStorage
+        navigate("/home");  // <-- routing to /home now
       }
     } catch (err) {
       setError("Invalid credentials or server error.");

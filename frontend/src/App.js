@@ -7,6 +7,7 @@ import AdminDashboard from "./Pages/AdminDashboard";
 import CreateUser from "./Pages/CreateUser";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import GetUser from "./Pages/GetUser";
+import UpdateUser from './Pages/UpdateUser';
 
 const AppRoutes = () => (
   <Routes>
@@ -41,6 +42,16 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
+
+    <Route path="/user-profile" element={<GetUser />} />
+        <Route
+          path="/update-user"
+          element={
+            <ProtectedRoute>
+              <UpdateUser />
+            </ProtectedRoute>
+          }
+        />
     <Route path="*" element={<Navigate to="/login" replace />} />
   </Routes>
 );

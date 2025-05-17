@@ -7,6 +7,7 @@ import Home from './components/Home/Home';
 import AdminDashboard from './Pages/AdminDashboard';
 import CreateUser from './Pages/CreateUser';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import UpdateUser from './Pages/UpdateUser';
 
 const AppRoutes = () => (
   <Routes>
@@ -37,6 +38,15 @@ const AppRoutes = () => (
     </ProtectedRoute>
   }
 />
+
+<Route
+      path="/update-user"
+      element={
+        <ProtectedRoute>
+          <UpdateUser />
+        </ProtectedRoute>
+      }
+    />
 
     {/* Catch-all route to redirect unknown paths */}
     <Route path="*" element={<Navigate to="/login" replace />} />
