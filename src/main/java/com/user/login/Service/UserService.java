@@ -66,15 +66,16 @@
         {
             authorizeSelf(userId);                                                          //Ensure the user is authorized to update their own information
             User user = findUserById(userId);                                               //Retrieve the user entity from the database by ID
-            Optional.ofNullable(userDTO.getFirstName()).ifPresent(user::setFirstName);      //Update first name if it's provided in the DTO
-            Optional.ofNullable(userDTO.getLastName()).ifPresent(user::setLastName);        //Update last name if it's provided in the DTO
-            Optional.ofNullable(userDTO.getUsername()).ifPresent(user::setUsername);        //Update username if it's provided in the DTO
-            Optional.ofNullable(userDTO.getEmail()).ifPresent(user::setEmail);              //Update email if it's provided in the DTO
-            Optional.ofNullable(userDTO.getPhoneNumber()).ifPresent(user::setPhoneNumber);  //Update phone number if it's provided in the DTO
-            Optional.ofNullable(userDTO.getHomeAddress()).ifPresent(user::setHomeAddress);  //Update home address if it's provided in the DTO
+
+            Optional.ofNullable(userDTO.getFirstName()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setFirstName);     //Update first name if it's provided in the DTO
+            Optional.ofNullable(userDTO.getLastName()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setLastName);       //Update last name if it's provided in the DTO
+            Optional.ofNullable(userDTO.getUsername()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setUsername);       //Update username if it's provided in the DTO
+            Optional.ofNullable(userDTO.getEmail()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setEmail);             //Update email if it's provided in the DTO
+            Optional.ofNullable(userDTO.getPhoneNumber()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setPhoneNumber); //Update phone number if it's provided in the DTO
+            Optional.ofNullable(userDTO.getHomeAddress()).filter(s -> !s.trim().isEmpty()).ifPresent(user::setHomeAddress); //Update home address if it's provided in the DTO
 
             //If a new password is provided, encrypt it and update
-            Optional.ofNullable(userDTO.getPassword()).ifPresent(pwd -> user.setPassword(passwordEncoder.encode(pwd)));
+            Optional.ofNullable(userDTO.getPassword()).filter(s -> !s.trim().isEmpty()).ifPresent(pwd -> user.setPassword(passwordEncoder.encode(pwd)));
 
             User updatedUser = userRepository.save(user);                                   //Save the updated user entity to the database
             UserDTO updatedUserDTO = userMapper.toDTO(updatedUser);                         //Convert the updated user entity to a DTO

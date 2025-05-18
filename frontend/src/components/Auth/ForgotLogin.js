@@ -7,6 +7,9 @@ export default function ForgotLogin() {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -21,9 +24,11 @@ export default function ForgotLogin() {
     };
 
     if (!payload.email) {
-      setError("Email is required");
+      setError("Email is required.");
       return;
     }
+
+    setLoading(true);
 
     try {
       const response = await fetch("http://localhost:8080/auth/forgotLogin", {
@@ -35,13 +40,13 @@ export default function ForgotLogin() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(data.message || "Credentials reset successful!");
+        setMessage(data.message || "Credentials reset successful! Redirecting to login...");
         setError("");
+        setSuccess(true);
 
-        // Redirect to login after 1.5 seconds delay to show success message
         setTimeout(() => {
           navigate("/login");
-        }, 1500);
+        }, 5000); // 5-second delay
       } else {
         setError(data.message || "Reset failed. Please try again.");
         setMessage("");
@@ -49,39 +54,66 @@ export default function ForgotLogin() {
     } catch {
       setError("Network or server error.");
       setMessage("");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      <h2>Reset Credentials</h2>
-      <form onSubmit={handleSubmit}>
-        <label>Email (required)</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          placeholder="Registered Email"
-        />
-        <label>New Username (optional)</label>
-        <input
-          type="text"
-          value={newUsername}
-          onChange={(e) => setNewUsername(e.target.value)}
-          placeholder="New Username"
-        />
-        <label>New Password (optional)</label>
-        <input
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="New Password"
-        />
-        <button type="submit">Reset</button>
-      </form>
-      {message && <p style={{ color: "green" }}>{message}</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div className="container mt-5">
+      <div className="col-md-6 offset-md-3 border rounded p-4 shadow">
+        <h2 className="text-center mb-4">Reset Credentials</h2>
+
+        {message && <div className="alert alert-success">{message}</div>}
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label>Email (required)</label>
+            <input
+              type="email"
+              className="form-control"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Registered Email"
+              disabled={loading || success}
+            />
+          </div>
+
+          <div className="mb-3">
+            <label>New Username (optional)</label>
+            <input
+              type="text"
+              className="form-control"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="New Username"
+              disabled={loading || success}
+            />
+          </div>
+
+          <div className="mb-3">
+            <label>New Password (optional)</label>
+            <input
+              type="password"
+              className="form-control"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New Password"
+              disabled={loading || success}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={loading || success}
+          >
+            {loading ? "Processing..." : "Reset"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

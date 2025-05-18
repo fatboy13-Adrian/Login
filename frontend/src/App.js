@@ -2,26 +2,27 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { AuthProvider } from "./context/AuthContext";
 import LoginForm from "./components/Auth/LoginForm";
 import ForgotLogin from "./components/Auth/ForgotLogin";
-import Home from "./components/Home/Home";
-import AdminDashboard from "./Pages/AdminDashboard";
+import Dashboard from "./Pages/Dashboard"; // Dashboard component
 import CreateUser from "./Pages/CreateUser";
+import UpdateUser from "./Pages/UpdateUser";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
-import GetUser from "./Pages/GetUser";
-import UpdateUser from './Pages/UpdateUser';
 
 const AppRoutes = () => (
   <Routes>
+    {/* Redirect root to login */}
     <Route path="/" element={<Navigate to="/login" replace />} />
 
+    {/* Public Routes */}
     <Route path="/login" element={<LoginForm />} />
     <Route path="/forgot-login" element={<ForgotLogin />} />
     <Route path="/create-user" element={<CreateUser />} />
-    
+
+    {/* Protected Routes */}
     <Route
-      path="/home"
+      path="/dashboard"
       element={
         <ProtectedRoute>
-          <Home />
+          <Dashboard />
         </ProtectedRoute>
       }
     />
@@ -29,29 +30,28 @@ const AppRoutes = () => (
       path="/admin"
       element={
         <ProtectedRoute>
-          <AdminDashboard />
+          <Dashboard />
         </ProtectedRoute>
       }
     />
-
-      <Route
-      path="/get-user"
+    <Route
+      path="/profile"
       element={
         <ProtectedRoute>
-          <GetUser />
+          <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/update-user"
+      element={
+        <ProtectedRoute>
+          <UpdateUser />
         </ProtectedRoute>
       }
     />
 
-    <Route path="/user-profile" element={<GetUser />} />
-        <Route
-          path="/update-user"
-          element={
-            <ProtectedRoute>
-              <UpdateUser />
-            </ProtectedRoute>
-          }
-        />
+    {/* Catch-all route */}
     <Route path="*" element={<Navigate to="/login" replace />} />
   </Routes>
 );

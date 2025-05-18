@@ -1,158 +1,159 @@
-// UpdateUser.js
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const UpdateUser = () => {
-  const [userData, setUserData] = useState({
-    username: '',
-    email: '',
-    homeAddress: '',
-    password: '',
-  });
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  const token = localStorage.getItem('token');
-  const userId = localStorage.getItem('userId');
-  const role = localStorage.getItem('role'); // Assuming role stored here
-
+  const { userId } = useParams();
   const navigate = useNavigate();
+  const [userData, setUserData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [role, setRole] = useState(null);
+
+  // Helper to parse JWT and get role (if stored there)
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUser = async () => {
       try {
-        const res = await fetch(`/users/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('No token found. Please login.');
+          setLoading(false);
+          return;
+        }
 
-        if (!res.ok) throw new Error('Failed to fetch user');
+        // Parse token to get role
+        const payload = parseJwt(token);
+        if (payload?.role) setRole(payload.role);
 
-        const data = await res.json();
-        setUserData({
-          username: data.username || '',
-          email: data.email || '',
-          homeAddress: data.homeAddress || '',
-          password: '',
+        // Fetch user data from API
+        const res = await axios.get(`http://localhost:8080/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+        setUserData(res.data);
       } catch (err) {
-        setError(err.message);
+        setError('Failed to load user data');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchUserData();
-  }, [token, userId]);
+    fetchUser();
+  }, [userId]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUserData((prev) => ({ ...prev, [name]: value }));
+    setUserData({ ...userData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
-
     try {
-      const res = await fetch(`/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:8080/users/${userId}`, userData, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const result = await res.json();
+      alert('Profile updated successfully!');
 
-      if (!res.ok) throw new Error(result.message || 'Update failed');
-
-      setMessage(result.message || 'Profile updated successfully!');
-
-      if (result.token) {
-        localStorage.setItem('token', result.token);
+      // Redirect based on role
+      if (role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/get-user'); // Assuming this route shows normal user profile
       }
     } catch (err) {
-      setError(err.message);
+      alert('Update failed');
     }
   };
 
-  // Navigate to Home.js and pass token, role, userId
-  const handleGoHome = () => {
-    const currentToken = localStorage.getItem('token');
-    const currentRole = role;
-    const currentUserId = localStorage.getItem('userId');
-
-    navigate('/home', {
-      state: {
-        token: currentToken,
-        role: currentRole,
-        userId: currentUserId,
-      },
-    });
-  };
-
-  if (loading) return <p>Loading user data...</p>;
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
 
   return (
-    <div style={{ maxWidth: '500px', margin: 'auto' }}>
-      <h2>Edit Profile</h2>
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <label>
-          Username:
-          <input
-            name="username"
-            value={userData.username}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <br />
+    <form onSubmit={handleSubmit} className="p-6 max-w-md mx-auto">
+      <h2 className="text-xl font-bold mb-4">Update Profile</h2>
 
-        <label>
-          Email:
-          <input
-            name="email"
-            value={userData.email}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <br />
+      <label className="block mb-2">
+        First Name:
+        <input
+          type="text"
+          name="firstName"
+          value={userData.firstName || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+      </label>
 
-        <label>
-          Home Address:
-          <input
-            name="homeAddress"
-            value={userData.homeAddress}
-            onChange={handleChange}
-          />
-        </label>
-        <br />
+      <label className="block mb-2">
+        Last Name:
+        <input
+          type="text"
+          name="lastName"
+          value={userData.lastName || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+      </label>
 
-        <label>
-          New Password:
-          <input
-            name="password"
-            type="password"
-            value={userData.password}
-            onChange={handleChange}
-          />
-        </label>
-        <br />
+      <label className="block mb-2">
+        Email:
+        <input
+          type="email"
+          name="email"
+          value={userData.email || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+      </label>
 
-        <button type="submit">Update Profile</button>
-      </form>
-      <br />
-      <button onClick={handleGoHome}>Go to Home</button>
-    </div>
+      <label className="block mb-2">
+        Phone Number:
+        <input
+          type="text"
+          name="phoneNumber"
+          value={userData.phoneNumber || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+      </label>
+
+      <label className="block mb-2">
+        Address:
+        <input
+          type="text"
+          name="homeAddress"
+          value={userData.homeAddress || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+      </label>
+
+      {/* Optionally, disable or hide role editing for normal users */}
+      <label className="block mb-4">
+        Role:
+        <input
+          type="text"
+          name="role"
+          value={userData.role || ''}
+          onChange={handleChange}
+          className="border p-2 w-full"
+          disabled={role !== 'admin'} // Only admins can change role
+        />
+      </label>
+
+      <button
+        type="submit"
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Update Profile
+      </button>
+    </form>
   );
 };
 

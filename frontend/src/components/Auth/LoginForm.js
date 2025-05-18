@@ -30,11 +30,8 @@ const LoginForm = () => {
       localStorage.setItem("userId", userId);
       localStorage.setItem("role", role);
 
-      if (role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/home");  // <-- routing to /home now
-      }
+      // ✅ Navigate to dashboard after login
+      navigate("/dashboard");
     } catch (err) {
       setError("Invalid credentials or server error.");
     }

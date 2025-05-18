@@ -1,156 +1,61 @@
-package com.user.login.Controller;                      //Define package for UserController class
-import com.user.login.DTO.UserDTO;                      //Import UserDTO for user data transfer objects
-import com.user.login.DTO.Auth.AuthResponseDTO;         //Import AuthResponseDTO for user data transfer objects
-import com.user.login.Exception.UserNotFoundException;  //Import custom exception for user not found cases
-import com.user.login.Service.UserService;              //Import service layer to handle user operations
-import lombok.RequiredArgsConstructor;                  //Lombok annotation to generate constructor for final fields
-import org.springframework.http.HttpStatus;             //HTTP status codes for responses
-import org.springframework.http.ResponseEntity;         //Wrap HTTP response data and status
-import org.springframework.web.bind.annotation.*;       //Spring MVC annotations for REST controller and mappings
-import java.util.List;                                  //Java List collection for multiple users
+package com.user.login.Controller;
+
+import com.user.login.DTO.UserDTO;
+import com.user.login.DTO.Auth.AuthResponseDTO;
+import com.user.login.Service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:3000")
-@RestController             //Marks class as a REST controller
-@RequestMapping("/users")   //Base URL path for all endpoints in this controller
-@RequiredArgsConstructor    //Lombok auto-generates constructor for final fields
-public class UserController 
-{                           
-    private final UserService userService;  //Inject UserService dependency
+@RestController
+@RequestMapping("/users")
+@RequiredArgsConstructor
+public class UserController {
 
-    //HTTP POST endpoint to create new user
-    @PostMapping                                       
-    public ResponseEntity<?> createUser(@RequestBody UserDTO userDTO) 
-    {
-        try 
-        {
-            UserDTO createdUser = userService.createUser(userDTO);          //Delegate user creation to service
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);   //Return created user with 201 status
-        } 
-        
-        catch(Exception e) 
-        {                                        
-            //Handle generic exceptions, return 500 status on failure and include error message
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create user: " + e.getMessage());
-        }
+    private final UserService userService;
+
+    // Create a new user
+    @PostMapping
+    public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO userDTO) {
+        UserDTO createdUser = userService.createUser(userDTO);
+        return ResponseEntity.ok(createdUser);
     }
 
-    //HTTP GET endpoint to get user by ID
-    @GetMapping("/{userId}")                               
-    public ResponseEntity<?> getUser(@PathVariable Long userId) 
-    {
-        try 
-        {
-            UserDTO user = userService.getUser(userId);     //Fetch user from service by ID
-            return ResponseEntity.ok(user);                  //Return user data with 200 OK
-        } 
-        
-        catch(UserNotFoundException e) 
-        {                  
-            //Handle user not found scenario and return 404 if user absent and include exception message
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } 
-        
-        catch(Exception e) 
-        {                               
-            //Handle other exceptions and return 500 on failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get user: " + e.getMessage());
-        }
+    // Get the currently authenticated user
+    @GetMapping("/me")
+    public ResponseEntity<UserDTO> getCurrentUser() {
+        UserDTO currentUser = userService.getCurrentUser();
+        return ResponseEntity.ok(currentUser);
     }
 
-    //HTTP GET endpoint to get all users
-    @GetMapping                                           
-    public ResponseEntity<?> getUsers() 
-    {
-        try 
-        {
-            List<UserDTO> users = userService.getUsers(); //Retrieve list of all users from service
-            return ResponseEntity.ok(users);              //Return list with 200 OK
-        } 
-        
-        catch(Exception e) 
-        {                            
-            //Handle any errors and return 500 status
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get users: " + e.getMessage());
-        }
+    // Get a specific user by userId
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDTO> getUser(@PathVariable("userId") Long userId) {
+        UserDTO user = userService.getUser(userId);
+        return ResponseEntity.ok(user);
     }
 
-    //HTTP PUT endpoint to update user by ID
-    @PutMapping("/{userId}")                             
-    public ResponseEntity<?> updateUser(@PathVariable Long userId, @RequestBody UserDTO userDTO) 
-    {
-        try 
-        {
-            AuthResponseDTO authResponse = userService.updateUser(userId, userDTO); //Update user via service
-            return ResponseEntity.ok(authResponse);                                 //Return the whole AuthResponseDTO
-        } 
-        
-        catch(UserNotFoundException e) 
-        {                 
-            //Handle user not found and return 404 if user not found
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } 
-        
-        catch(Exception e) 
-        {                              
-            //Handle other exceptions and return 500 on failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user: " + e.getMessage());
-        }
+    // Get all users
+    @GetMapping
+    public ResponseEntity<List<UserDTO>> getUsers() {
+        List<UserDTO> users = userService.getUsers();
+        return ResponseEntity.ok(users);
     }
 
-    //HTTP DELETE endpoint to delete user by ID
-    @DeleteMapping("/{userId}")                           
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) 
-    {
-        try 
-        {
-            userService.deleteUser(userId);                //Delete user via service
-            return ResponseEntity.noContent().build();     //Return 204 No Content on success
-        } 
-        
-        catch(UserNotFoundException e) 
-        {                 
-            //Handle user not found and return 404 if user absent
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } 
-        
-        catch(Exception e) 
-        {                              
-            //Handle other exceptions and return 500 on failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete user: " + e.getMessage());
-        }
+    // Update user by userId
+    @PatchMapping("/{userId}")
+    public ResponseEntity<AuthResponseDTO> updateUser(@PathVariable("userId") Long userId, @RequestBody UserDTO userDTO) {
+        AuthResponseDTO updatedUser = userService.updateUser(userId, userDTO);
+        return ResponseEntity.ok(updatedUser);
     }
 
-    //HTTP GET endpoint to get current authenticated user
-    @GetMapping("/me")                                    
-    public ResponseEntity<?> getCurrentUser() 
-    {
-        try 
-        {
-            UserDTO currentUser = userService.getCurrentUser(); //Fetch current user info from service
-            return ResponseEntity.ok(currentUser);              //Return user data with 200 OK
-        } 
-        
-        catch(Exception e) 
-        {                              
-            //Handle errors and return 500 on failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get current user: " + e.getMessage());
-        }
-    }
-
-    //HTTP GET endpoint to get authenticated username
-    @GetMapping("/me/username")                           
-    public ResponseEntity<?> getAuthenticatedUsername() 
-    {
-        try 
-        {
-            String username = userService.getAuthenticatedUsername();   //Get current username from service
-            return ResponseEntity.ok(username);                         //Return username with 200 OK
-        } 
-        
-        catch(Exception e) 
-        {
-            //Handle error and return 500 on failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to get username: " + e.getMessage());
-        }
+    // Delete user by userId
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable("userId") Long userId) {
+        userService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
     }
 }
