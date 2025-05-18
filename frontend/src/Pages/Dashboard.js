@@ -17,64 +17,62 @@ const Dashboard = () => {
     }
   };
 
-  const fetchCurrentUser = useCallback(async (token) => {
+  const fetchCurrentUser = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No token found. Please log in again.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.get('http://localhost:8080/users/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const user = response.data;
       setCurrentUser(user);
-
       localStorage.setItem('userId', user.userId);
       localStorage.setItem('role', user.role);
 
-      return user;
+      if (user.role === 'admin') {
+        await fetchAllUsers(token);
+      } else {
+        setUsers([user]);
+      }
     } catch (err) {
-      throw new Error('Failed to fetch user profile.');
+      setError('Failed to fetch user profile.');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const fetchAllUsers = useCallback(async (token) => {
+  const fetchAllUsers = async (token) => {
     try {
       const response = await axios.get('http://localhost:8080/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(response.data);
     } catch (err) {
-      throw new Error('Failed to fetch users list.');
+      setError('Failed to fetch users list.');
     }
-  }, []);
+  };
 
   useEffect(() => {
-    const initializeDashboard = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No token found. Please log in.');
-        setLoading(false);
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No token found. Please log in.');
+      setLoading(false);
+      return;
+    }
 
-      const decoded = parseJwt(token);
-      if (decoded?.userId) {
-        localStorage.setItem('userId', decoded.userId);
-      }
+    const decoded = parseJwt(token);
+    if (decoded?.userId) {
+      localStorage.setItem('userId', decoded.userId);
+    }
 
-      try {
-        const user = await fetchCurrentUser(token);
-        if (user.role?.toLowerCase() === 'admin') {
-          await fetchAllUsers(token);
-        } else {
-          setUsers([user]);
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeDashboard();
-  }, [fetchCurrentUser, fetchAllUsers]);
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   const handleDelete = async (userId) => {
     const token = localStorage.getItem('token');

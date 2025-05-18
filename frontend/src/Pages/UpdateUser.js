@@ -1,159 +1,95 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 const UpdateUser = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const [userData, setUserData] = useState({});
-  const [loading, setLoading] = useState(true);
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    phoneNumber: '',
+    homeAddress: ''
+  });
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [role, setRole] = useState(null);
 
-  // Helper to parse JWT and get role (if stored there)
-  const parseJwt = (token) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch {
-      return null;
-    }
-  };
-
+  // Fetch current user info
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          setError('No token found. Please login.');
-          setLoading(false);
-          return;
-        }
-
-        // Parse token to get role
-        const payload = parseJwt(token);
-        if (payload?.role) setRole(payload.role);
-
-        // Fetch user data from API
         const res = await axios.get(`http://localhost:8080/users/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setUserData(res.data);
+        setFormData(res.data);
       } catch (err) {
-        setError('Failed to load user data');
-      } finally {
-        setLoading(false);
+        setError('Failed to load user data.');
       }
     };
     fetchUser();
   }, [userId]);
 
   const handleChange = (e) => {
-    setUserData({ ...userData, [e.target.name]: e.target.value });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage('');
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8080/users/${userId}`, userData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.patch(
+        `http://localhost:8080/users/${userId}`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-      alert('Profile updated successfully!');
+      // Expecting backend to return a new token and updated userId
+      const newToken = res.data.token;
+      const newUserId = res.data.userId || userId;
 
-      // Redirect based on role
-      if (role === 'admin') {
-        navigate('/admin-dashboard');
-      } else {
-        navigate('/get-user'); // Assuming this route shows normal user profile
+      if (newToken) {
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('userId', newUserId);
       }
+
+      setMessage('Profile updated successfully! Redirecting to Dashboard...');
+      setTimeout(() => {
+        navigate('/dashboard', {
+          state: {
+            newToken,
+            userId: newUserId
+          }
+        });
+      }, 5000);
     } catch (err) {
-      alert('Update failed');
+      console.error(err);
+      setError('Update failed. Please try again.');
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
-
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Update Profile</h2>
-
-      <label className="block mb-2">
-        First Name:
-        <input
-          type="text"
-          name="firstName"
-          value={userData.firstName || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-      </label>
-
-      <label className="block mb-2">
-        Last Name:
-        <input
-          type="text"
-          name="lastName"
-          value={userData.lastName || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-      </label>
-
-      <label className="block mb-2">
-        Email:
-        <input
-          type="email"
-          name="email"
-          value={userData.email || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-      </label>
-
-      <label className="block mb-2">
-        Phone Number:
-        <input
-          type="text"
-          name="phoneNumber"
-          value={userData.phoneNumber || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-      </label>
-
-      <label className="block mb-2">
-        Address:
-        <input
-          type="text"
-          name="homeAddress"
-          value={userData.homeAddress || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        />
-      </label>
-
-      {/* Optionally, disable or hide role editing for normal users */}
-      <label className="block mb-4">
-        Role:
-        <input
-          type="text"
-          name="role"
-          value={userData.role || ''}
-          onChange={handleChange}
-          className="border p-2 w-full"
-          disabled={role !== 'admin'} // Only admins can change role
-        />
-      </label>
-
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Update Profile
-      </button>
-    </form>
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">Update My Profile</h2>
+      {message && <p className="text-green-600 mb-2">{message}</p>}
+      {error && <p className="text-red-600 mb-2">{error}</p>}
+      <form onSubmit={handleSubmit} className="grid gap-4">
+        <input name="firstName" value={formData.firstName || ''} onChange={handleChange} placeholder="First Name" className="border px-3 py-2" />
+        <input name="lastName" value={formData.lastName || ''} onChange={handleChange} placeholder="Last Name" className="border px-3 py-2" />
+        <input name="username" value={formData.username || ''} onChange={handleChange} placeholder="Username" className="border px-3 py-2" />
+        <input name="email" value={formData.email || ''} onChange={handleChange} placeholder="Email" className="border px-3 py-2" />
+        <input name="phoneNumber" value={formData.phoneNumber || ''} onChange={handleChange} placeholder="Phone Number" className="border px-3 py-2" />
+        <input name="homeAddress" value={formData.homeAddress || ''} onChange={handleChange} placeholder="Home Address" className="border px-3 py-2" />
+        <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Update</button>
+      </form>
+    </div>
   );
 };
 
