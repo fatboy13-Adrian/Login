@@ -12,24 +12,33 @@ import com.user.login.Enum.Role;    //Importing Role enum
 @Builder                            //Enables builder pattern
 public class User 
 {
-    @Id                                                 //Marks as primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-generate ID
-    @Column(name = "userId")                            //Maps to 'userId' column
-    private Long userId;                                //User's unique ID
+    @Id                                                     //Marks as primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY)     //Auto-generate ID
+    @Column(name = "userId")                                //Maps to 'userId' column
+    private Long userId;                                    //User's unique ID
 
-    @Column(nullable = false, unique = true)            //Unique, non-nullable column
-    private String username;                            //User's username
+    @Column(nullable = false)                               //Non-nullable column
+    private String firstName;                               //User's first name
 
-    @Column(nullable = false, unique = true)            //Unique, non-nullable column
-    private String email;                               //User's email
+    @Column(nullable = false)                               //Non-nullable column
+    private String lastName;                                //User's last name
 
-    @Column(nullable = false)                           //Non-nullable column
-    private String homeAddress;                         //User's home address
+    @Column(nullable = false, unique = true)                //Unique, non-nullable column
+    private String username;                                //User's username
 
-    @Column(nullable = false)                           //Non-nullable column
-    private String password;                            //User's password
+    @Column(nullable = false, unique = true)                //Unique, non-nullable column
+    private String email;                                   //User's email
 
-    @Enumerated(EnumType.STRING)                        //Store enum as string
-    @Column(name = "role", nullable = false)            //Non-nullable 'role' column
-    private Role role;                                  //User's role (e.g., ADMIN, CUSTOMER)
+    @Column(nullable = false, unique = true, length = 15)   //Unique, non-nullable column
+    private String phoneNumber;                             //User's phone number
+
+    @Column(nullable = false)                               //Non-nullable column
+    private String homeAddress;                             //User's home address
+
+    @Column(nullable = false)                               //Non-nullable column
+    private String password;                                //User's password
+
+    @Enumerated(EnumType.STRING)                            //Store enum as string
+    @Column(name = "role", nullable = false)                //Non-nullable 'role' column
+    private Role role;                                      //User's role (e.g., ADMIN, CUSTOMER)
 }
