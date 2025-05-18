@@ -1,4 +1,3 @@
-// Dashboard.js
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -11,17 +10,20 @@ const Dashboard = () => {
   const [deleteSuccess, setDeleteSuccess] = useState("");
   const navigate = useNavigate();
 
+  // Fetch all users for admin
   const fetchAllUsers = async (token) => {
     try {
       const response = await axios.get("http://localhost:8080/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(response.data);
+      setError("");
     } catch (err) {
       setError("Failed to fetch users list.");
     }
   };
 
+  // Fetch current logged in user and load users accordingly
   const fetchCurrentUser = useCallback(async (token, isAdmin) => {
     try {
       const response = await axios.get("http://localhost:8080/users/me", {
@@ -35,6 +37,8 @@ const Dashboard = () => {
       } else {
         setUsers([user]);
       }
+
+      setError("");
     } catch (err) {
       setError("Failed to fetch user profile.");
     } finally {
@@ -55,8 +59,9 @@ const Dashboard = () => {
     fetchCurrentUser(token, role === "ADMIN");
   }, [fetchCurrentUser]);
 
+  // Delete user handler - only ADMIN allowed, can't delete self
   const handleDelete = async (userId) => {
-    if (currentUser?.role !== "admin") {
+    if (currentUser?.role !== "ADMIN") {
       alert("Unauthorized action.");
       return;
     }
@@ -73,11 +78,9 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setDeleteSuccess("User deleted successfully. Refreshing list in 5 seconds...");
-      setTimeout(() => {
-        fetchAllUsers(token);
-        setDeleteSuccess("");
-      }, 5000);
+      setDeleteSuccess("User deleted successfully. Refreshing list...");
+      await fetchAllUsers(token);
+      setTimeout(() => setDeleteSuccess(""), 3000);
     } catch (err) {
       alert("Failed to delete user.");
     }
@@ -94,10 +97,6 @@ const Dashboard = () => {
       return;
     }
     navigate(`/update-user/${currentUser.userId}`);
-  };
-
-  const handleViewProfile = (userId) => {
-    navigate(`/view-user/${userId}`);
   };
 
   return (
@@ -131,9 +130,7 @@ const Dashboard = () => {
                 <th className="border px-4 py-2">Phone</th>
                 <th className="border px-4 py-2">Address</th>
                 <th className="border px-4 py-2">Role</th>
-                {currentUser?.role === "admin" && (
-                  <th className="border px-4 py-2">Actions</th>
-                )}
+                {currentUser?.role === "ADMIN" && <th className="border px-4 py-2">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -147,14 +144,8 @@ const Dashboard = () => {
                   <td className="border px-4 py-2">{user.phoneNumber || "-"}</td>
                   <td className="border px-4 py-2">{user.homeAddress || "-"}</td>
                   <td className="border px-4 py-2">{user.role || "-"}</td>
-                  {currentUser?.role === "admin" && (
-                    <td className="border px-4 py-2 space-x-2">
-                      <button
-                        onClick={() => handleViewProfile(user.userId)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                      >
-                        View
-                      </button>
+                  {currentUser?.role === "ADMIN" && (
+                    <td className="border px-4 py-2">
                       {user.userId !== currentUser.userId && (
                         <button
                           onClick={() => handleDelete(user.userId)}
