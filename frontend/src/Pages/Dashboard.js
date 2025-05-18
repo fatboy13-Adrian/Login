@@ -1,100 +1,103 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+// Dashboard.js
+import React, { useEffect, useState, useCallback } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
   const navigate = useNavigate();
 
-  const parseJwt = (token) => {
+  const fetchAllUsers = async (token) => {
     try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch {
-      return null;
+      const response = await axios.get("http://localhost:8080/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data);
+    } catch (err) {
+      setError("Failed to fetch users list.");
     }
   };
 
-  const fetchCurrentUser = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('No token found. Please log in again.');
-      setLoading(false);
-      return;
-    }
-
+  const fetchCurrentUser = useCallback(async (token, isAdmin) => {
     try {
-      const response = await axios.get('http://localhost:8080/users/me', {
+      const response = await axios.get("http://localhost:8080/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const user = response.data;
       setCurrentUser(user);
-      localStorage.setItem('userId', user.userId);
-      localStorage.setItem('role', user.role);
 
-      if (user.role === 'admin') {
+      if (isAdmin) {
         await fetchAllUsers(token);
       } else {
         setUsers([user]);
       }
     } catch (err) {
-      setError('Failed to fetch user profile.');
+      setError("Failed to fetch user profile.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const fetchAllUsers = async (token) => {
-    try {
-      const response = await axios.get('http://localhost:8080/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(response.data);
-    } catch (err) {
-      setError('Failed to fetch users list.');
-    }
-  };
-
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
     if (!token) {
-      setError('No token found. Please log in.');
+      setError("No token found. Please log in.");
       setLoading(false);
       return;
     }
 
-    const decoded = parseJwt(token);
-    if (decoded?.userId) {
-      localStorage.setItem('userId', decoded.userId);
-    }
-
-    fetchCurrentUser();
+    fetchCurrentUser(token, role === "ADMIN");
   }, [fetchCurrentUser]);
 
   const handleDelete = async (userId) => {
-    const token = localStorage.getItem('token');
+    if (currentUser?.role !== "admin") {
+      alert("Unauthorized action.");
+      return;
+    }
+
+    if (userId === currentUser.userId) {
+      alert("Admins cannot delete their own accounts.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
     try {
       await axios.delete(`http://localhost:8080/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers((prev) => prev.filter((u) => u.userId !== userId));
+
+      setDeleteSuccess("User deleted successfully. Refreshing list in 5 seconds...");
+      setTimeout(() => {
+        fetchAllUsers(token);
+        setDeleteSuccess("");
+      }, 5000);
     } catch (err) {
-      alert('Failed to delete user.');
+      alert("Failed to delete user.");
     }
   };
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleUpdate = () => {
-    const userId = localStorage.getItem('userId');
-    if (userId) navigate(`/update-user/${userId}`);
-    else alert('User ID missing.');
+    if (!currentUser) {
+      alert("User data not loaded yet.");
+      return;
+    }
+    navigate(`/update-user/${currentUser.userId}`);
+  };
+
+  const handleViewProfile = (userId) => {
+    navigate(`/view-user/${userId}`);
   };
 
   return (
@@ -113,47 +116,60 @@ const Dashboard = () => {
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : (
-        <table className="min-w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-200 text-left">
-              <th className="border px-4 py-2">ID</th>
-              <th className="border px-4 py-2">First Name</th>
-              <th className="border px-4 py-2">Last Name</th>
-              <th className="border px-4 py-2">Username</th>
-              <th className="border px-4 py-2">Email</th>
-              <th className="border px-4 py-2">Phone</th>
-              <th className="border px-4 py-2">Address</th>
-              <th className="border px-4 py-2">Role</th>
-              {currentUser?.role === 'admin' && (
-                <th className="border px-4 py-2">Actions</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.userId}>
-                <td className="border px-4 py-2">{user.userId}</td>
-                <td className="border px-4 py-2">{user.firstName || '-'}</td>
-                <td className="border px-4 py-2">{user.lastName || '-'}</td>
-                <td className="border px-4 py-2">{user.username}</td>
-                <td className="border px-4 py-2">{user.email}</td>
-                <td className="border px-4 py-2">{user.phoneNumber || '-'}</td>
-                <td className="border px-4 py-2">{user.homeAddress || '-'}</td>
-                <td className="border px-4 py-2">{user.role || '-'}</td>
-                {currentUser?.role === 'admin' && (
-                  <td className="border px-4 py-2 space-x-2">
-                    <button
-                      onClick={() => handleDelete(user.userId)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        <>
+          {deleteSuccess && (
+            <div className="mb-4 text-green-600 font-semibold">{deleteSuccess}</div>
+          )}
+          <table className="min-w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-200 text-left">
+                <th className="border px-4 py-2">ID</th>
+                <th className="border px-4 py-2">First Name</th>
+                <th className="border px-4 py-2">Last Name</th>
+                <th className="border px-4 py-2">Username</th>
+                <th className="border px-4 py-2">Email</th>
+                <th className="border px-4 py-2">Phone</th>
+                <th className="border px-4 py-2">Address</th>
+                <th className="border px-4 py-2">Role</th>
+                {currentUser?.role === "admin" && (
+                  <th className="border px-4 py-2">Actions</th>
                 )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.userId}>
+                  <td className="border px-4 py-2">{user.userId}</td>
+                  <td className="border px-4 py-2">{user.firstName || "-"}</td>
+                  <td className="border px-4 py-2">{user.lastName || "-"}</td>
+                  <td className="border px-4 py-2">{user.username}</td>
+                  <td className="border px-4 py-2">{user.email}</td>
+                  <td className="border px-4 py-2">{user.phoneNumber || "-"}</td>
+                  <td className="border px-4 py-2">{user.homeAddress || "-"}</td>
+                  <td className="border px-4 py-2">{user.role || "-"}</td>
+                  {currentUser?.role === "admin" && (
+                    <td className="border px-4 py-2 space-x-2">
+                      <button
+                        onClick={() => handleViewProfile(user.userId)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                      >
+                        View
+                      </button>
+                      {user.userId !== currentUser.userId && (
+                        <button
+                          onClick={() => handleDelete(user.userId)}
+                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
 
       <div className="mt-4">

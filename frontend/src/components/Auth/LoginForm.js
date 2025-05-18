@@ -1,3 +1,4 @@
+// LoginForm.js
 import React, { useState } from "react";
 import { loginUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
@@ -17,10 +18,9 @@ const LoginForm = () => {
 
     try {
       const userData = await loginUser(username, password);
+      const { token, userId, roleMessage } = userData;
 
-      const token = userData.token;
-      const userId = userData.userId;
-      const role = userData.roleMessage?.split(":")[1]?.trim().toUpperCase();
+      const role = roleMessage?.split(":")[1]?.trim().toUpperCase();
 
       if (!token || !userId || !role) {
         throw new Error("Missing login data.");
@@ -30,15 +30,11 @@ const LoginForm = () => {
       localStorage.setItem("userId", userId);
       localStorage.setItem("role", role);
 
-      // ✅ Navigate to dashboard after login
       navigate("/dashboard");
     } catch (err) {
       setError("Invalid credentials or server error.");
     }
   };
-
-  const handleNavigateToRegister = () => navigate("/create-user");
-  const handleNavigateToForgotLogin = () => navigate("/forgot-login");
 
   return (
     <div>
@@ -65,15 +61,10 @@ const LoginForm = () => {
       </form>
 
       <div style={{ marginTop: "1rem" }}>
-        <Button type="button" onClick={handleNavigateToRegister}>
-          Register New User
-        </Button>
+        <Button onClick={() => navigate("/create-user")}>Register New User</Button>
       </div>
-
       <div style={{ marginTop: "1rem" }}>
-        <Button type="button" onClick={handleNavigateToForgotLogin}>
-          Forgot My Password
-        </Button>
+        <Button onClick={() => navigate("/forgot-login")}>Forgot My Password</Button>
       </div>
     </div>
   );
