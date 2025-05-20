@@ -1,119 +1,133 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react"         //React and useState hook
+import { useNavigate } from "react-router-dom"  //Navigation hook
+import "../../styles/styles.css"           //Component styles
 
-export default function ForgotLogin() {
-  const [email, setEmail] = useState("");
-  const [newUsername, setNewUsername] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+export default function ForgotLogin() 
+{
+  //Form data state
+  const [formData, setFormData] = useState({  
+    email: "",
+    newUsername: "",
+    newPassword: ""
+  })
 
-  const navigate = useNavigate();
+  const [message, setMessage] = useState("")    //Success message state
+  const [error, setError] = useState("")        //Error message state
+  const [success, setSuccess] = useState(false) //Success flag
+  const [loading, setLoading] = useState(false) //Loading flag
+  const navigate = useNavigate()                //Navigation function
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    setError("");
+  const handleChange = (e) => 
+  {
+    const { id, value } = e.target  //Get input id and value
+    setFormData((prev) => ({        //Update form data
+      ...prev,
+      [id]: value
+    }))
+  }
 
-    const payload = {
-      email: email.trim(),
-      username: newUsername.trim(),
-      password: newPassword.trim(),
-    };
+  const handleSubmit = async (e) => 
+  {
+    e.preventDefault()  //Prevent form reload
+    setMessage("")      //Clear messages
+    setError("")
 
-    if (!payload.email) {
-      setError("Email is required.");
-      return;
+    const payload = 
+    {
+      email: formData.email.trim(),           //Trim inputs
+      username: formData.newUsername.trim(),
+      password: formData.newPassword.trim()
     }
 
-    setLoading(true);
+    if(!payload.email)  //Email validation
+    {
+      setError("Email is required")
+      return
+    }
 
-    try {
-      const response = await fetch("http://localhost:8080/auth/forgotLogin", {
-        method: "POST",
+    setLoading(true)  //Start loading
+
+    try 
+    {
+      const response = await fetch("http://localhost:8080/auth/forgotLogin", 
+      {
+        method: "POST",                                 //POST request
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        body: JSON.stringify(payload)
+      })
 
-      const data = await response.json();
+      const data = await response.json()               //Parse JSON response
 
-      if (response.ok) {
-        setMessage(data.message || "Credentials reset successful! Redirecting to login...");
-        setError("");
-        setSuccess(true);
+      if(response.ok)                                   //Success response
+      {
+        setMessage(data.message || "Credentials reset successful! Redirecting to login...")
+        setError("")
+        setSuccess(true)
+        setTimeout(() => navigate("/login"), 5000)  //Redirect after 5 sec
+      } 
 
-        setTimeout(() => {
-          navigate("/login");
-        }, 5000); // 5-second delay
-      } else {
-        setError(data.message || "Reset failed. Please try again.");
-        setMessage("");
+      else                                          //Failure response
+      {
+        setError(data.message || "Reset failed. Please try again")
+        setMessage("")
       }
-    } catch {
-      setError("Network or server error.");
-      setMessage("");
-    } finally {
-      setLoading(false);
+    } 
+    catch                                         //Network/server error
+    {
+      setError("Network or server error")
+      setMessage("")
+    } 
+
+    finally                                           //Stop loading
+    {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="container mt-5">
-      <div className="col-md-6 offset-md-3 border rounded p-4 shadow">
-        <h2 className="text-center mb-4">Reset Credentials</h2>
+    <div className="forgot-login-container">                          {/*Container*/}
+      <h2>Reset Credentials</h2>
 
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-danger">{error}</div>}
+      {message && <div className="success-message">{message}</div>}   {/*Show success*/}
+      {error && <div className="error-message">{error}</div>}         {/*Show error*/}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label>Email (required)</label>
-            <input
-              type="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Registered Email"
-              disabled={loading || success}
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="forgot-login-form">
+        <div className="form-row">
+          <label htmlFor="email" className="form-label">Email (required)</label>
+          <input 
+            id="email" type="email" value={formData.email} onChange={handleChange} 
+            placeholder="Registered Email" required disabled={loading || success}
+            className="form-input"
+          />
+        </div>
 
-          <div className="mb-3">
-            <label>New Username (optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="New Username"
-              disabled={loading || success}
-            />
-          </div>
+        <div className="form-row">
+          <label htmlFor="newUsername" className="form-label">New Username (optional)</label>
+          <input 
+            id="newUsername" type="text" value={formData.newUsername} onChange={handleChange} 
+            placeholder="New Username" disabled={loading || success}
+            className="form-input"
+          />
+        </div>
 
-          <div className="mb-3">
-            <label>New Password (optional)</label>
-            <input
-              type="password"
-              className="form-control"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New Password"
-              disabled={loading || success}
-            />
-          </div>
+        <div className="form-row">
+          <label htmlFor="newPassword" className="form-label">New Password (optional)</label>
+          <input 
+            id="newPassword" type="password" value={formData.newPassword} onChange={handleChange} 
+            placeholder="New Password" disabled={loading || success}
+            className="form-input"
+          />
+        </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary w-100"
-            disabled={loading || success}
+        <div className="buttons-group">
+          <button 
+            type="submit" disabled={loading || success} 
+            className={`btn${loading || success ? " disabled" : ""}`}
           >
             {loading ? "Processing..." : "Reset"}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
-  );
+  )
 }
