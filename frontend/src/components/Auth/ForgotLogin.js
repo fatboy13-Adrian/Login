@@ -121,8 +121,9 @@ export default function ForgotLogin()
 
         <div className="buttons-group">
           <button 
-            type="submit" disabled={loading || success} 
-            className={`btn${loading || success ? " disabled" : ""}`}
+            type="submit" 
+            disabled={loading || success} 
+            className={`reset-button btn${loading || success ? " disabled" : ""}`}
           >
             {loading ? "Processing..." : "Reset"}
           </button>

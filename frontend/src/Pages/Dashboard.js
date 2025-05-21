@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "../styles/styles.css";                //Import external CSS styles
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
@@ -10,7 +11,6 @@ const Dashboard = () => {
   const [deleteSuccess, setDeleteSuccess] = useState("");
   const navigate = useNavigate();
 
-  // Fetch all users for admin
   const fetchAllUsers = async (token) => {
     try {
       const response = await axios.get("http://localhost:8080/users", {
@@ -23,7 +23,6 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch current logged in user and load users accordingly
   const fetchCurrentUser = useCallback(async (token, isAdmin) => {
     try {
       const response = await axios.get("http://localhost:8080/users/me", {
@@ -59,7 +58,6 @@ const Dashboard = () => {
     fetchCurrentUser(token, role === "ADMIN");
   }, [fetchCurrentUser]);
 
-  // Delete user handler - only ADMIN allowed, can't delete self
   const handleDelete = async (userId) => {
     if (currentUser?.role !== "ADMIN") {
       alert("Unauthorized action.");
@@ -100,56 +98,47 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-
-      <button
-        onClick={handleUpdate}
-        className="mb-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-      >
-        Update My Profile
-      </button>
+    <div className="dashboard-center">
+      <h1>Dashboard</h1>
 
       {loading ? (
         <p>Loading...</p>
       ) : error ? (
-        <div className="text-red-500">{error}</div>
+        <div className="error-message">{error}</div>
       ) : (
         <>
-          {deleteSuccess && (
-            <div className="mb-4 text-green-600 font-semibold">{deleteSuccess}</div>
-          )}
-          <table className="min-w-full border-collapse border border-gray-300">
+          {deleteSuccess && <div className="success-message">{deleteSuccess}</div>}
+          <table className="user-table">
             <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="border px-4 py-2">ID</th>
-                <th className="border px-4 py-2">First Name</th>
-                <th className="border px-4 py-2">Last Name</th>
-                <th className="border px-4 py-2">Username</th>
-                <th className="border px-4 py-2">Email</th>
-                <th className="border px-4 py-2">Phone</th>
-                <th className="border px-4 py-2">Address</th>
-                <th className="border px-4 py-2">Role</th>
-                {currentUser?.role === "ADMIN" && <th className="border px-4 py-2">Actions</th>}
+              <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Role</th>
+                {currentUser?.role === "ADMIN" && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.userId}>
-                  <td className="border px-4 py-2">{user.userId}</td>
-                  <td className="border px-4 py-2">{user.firstName || "-"}</td>
-                  <td className="border px-4 py-2">{user.lastName || "-"}</td>
-                  <td className="border px-4 py-2">{user.username}</td>
-                  <td className="border px-4 py-2">{user.email}</td>
-                  <td className="border px-4 py-2">{user.phoneNumber || "-"}</td>
-                  <td className="border px-4 py-2">{user.homeAddress || "-"}</td>
-                  <td className="border px-4 py-2">{user.role || "-"}</td>
+                  <td>{user.userId}</td>
+                  <td>{user.firstName || "-"}</td>
+                  <td>{user.lastName || "-"}</td>
+                  <td>{user.username}</td>
+                  <td>{user.email}</td>
+                  <td>{user.phoneNumber || "-"}</td>
+                  <td>{user.homeAddress || "-"}</td>
+                  <td>{user.role || "-"}</td>
                   {currentUser?.role === "ADMIN" && (
-                    <td className="border px-4 py-2">
+                    <td>
                       {user.userId !== currentUser.userId && (
                         <button
                           onClick={() => handleDelete(user.userId)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                          className="btn"
                         >
                           Delete
                         </button>
@@ -160,19 +149,21 @@ const Dashboard = () => {
               ))}
             </tbody>
           </table>
+
+          <div className="buttons-center">
+            <button onClick={handleUpdate} className="btn">
+              Update My Profile
+            </button>
+            <button onClick={handleLogout} className="btn">
+              Logout
+            </button>
+          </div>
         </>
       )}
-
-      <div className="mt-4">
-        <button
-          onClick={handleLogout}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Logout
-        </button>
-      </div>
     </div>
-  );
+
+);
+
 };
 
 export default Dashboard;
