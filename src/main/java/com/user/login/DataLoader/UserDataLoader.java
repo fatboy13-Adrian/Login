@@ -37,14 +37,12 @@ public class UserDataLoader implements CommandLineRunner {
         UserDTO adminDTO = buildUserDTO("admin", "Admin", "User", "admin@example.com", "+1234567890", "Admin Street, Admin City", "admin123", Role.ADMIN);
         UserDTO customer01DTO = buildUserDTO("customer01", "John", "Doe", "customer01@example.com", "+1987654321", "Customer Lane, Customer Town", "customer123", Role.CUSTOMER);
         UserDTO customer02DTO = buildUserDTO("customer02", "Jane", "Smith", "customer02@example.com", "+1987654322", "Customer Lane, Customer Town", "customer123", Role.CUSTOMER);
-        UserDTO salesClerkDTO = buildUserDTO("sales_clerk", "Sally", "Clerk", "sales@example.com", "+1231231234", "Sales Street, Clerk City", "sales123", Role.SALES_CLERK);
-        UserDTO warehouseSupervisorDTO = buildUserDTO("warehouse_supervisor", "Walter", "Supervisor", "warehouse@example.com", "+3213214321", "Warehouse Street, Supervisor City", "warehouse123", Role.WAREHOUSE_SUPERVISOR);
+        UserDTO userUserDTO = buildUserDTO("warehouse_supervisor", "Walter", "Supervisor", "warehouse@example.com", "+3213214321", "Warehouse Street, Supervisor City", "warehouse123", Role.USER);
 
         saveUser(adminDTO);
         saveUser(customer01DTO);
         saveUser(customer02DTO);
-        saveUser(salesClerkDTO);
-        saveUser(warehouseSupervisorDTO);
+        saveUser(userUserDTO);
 
         logger.info("Initial user data loaded successfully!");
     }

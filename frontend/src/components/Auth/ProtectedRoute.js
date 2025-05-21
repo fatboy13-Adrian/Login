@@ -1,16 +1,17 @@
-// src/components/ProtectedRoute.js
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import React from 'react';                            //Import React library for JSX support
+import {Navigate} from 'react-router-dom';          //Import Navigate from React Router to handle redirection
+import {useAuth} from '../../context/AuthContext';  //Import custom authentication context hook to access auth state
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+//Define a ProtectedRoute component that receives children (nested components)
+const ProtectedRoute = ({ children }) => 
+{
+  const { isAuthenticated } = useAuth();      //Destructure isAuthenticated value from the authentication context
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  //If user is not authenticated, redirect to the login page
+  if(!isAuthenticated) 
+    return <Navigate to="/login" replace />;  //'replace' prevents back navigation to the protected page
 
-  return children;
+  return children;   //If authenticated, render the protected content        
 };
 
-export default ProtectedRoute;
+export default ProtectedRoute;  //Export the component for use in routing

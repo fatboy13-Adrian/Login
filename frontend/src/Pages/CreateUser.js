@@ -1,13 +1,13 @@
-import React, {useState} from "react";        //Import React and useState hook for managing state
-import axios from "axios";                    //Import axios for making HTTP requests
-import {useNavigate} from "react-router-dom"; //Import useNavigate for programmatic navigation
-import "../styles/styles.css";                //Import external CSS styles
+import React, { useState } from "react";        //Import React and useState hook
+import axios from "axios";                      //Import axios for HTTP requests
+import { useNavigate } from "react-router-dom"; //Import useNavigate for navigation
+import "../styles/styles.css";                  //Import CSS styles
 
 function CreateUser() 
 {
-  const navigate = useNavigate();             //Initialize navigate function to redirect user after registration
+  const navigate = useNavigate(); //Hook for programmatic navigation
 
-  //State for holding user input fields
+  //State to hold user input fields
   const [user, setUser] = useState({
     firstName: "",
     lastName: "",
@@ -17,27 +17,27 @@ function CreateUser()
     homeAddress: "",
     password: "",
     role: "",
-});
+  });
 
-  //State to hold error messages, success status, and loading status
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);       //Error message state
+  const [success, setSuccess] = useState(false);  //Success flag state
+  const [loading, setLoading] = useState(false);  //Loading flag state
 
   //Update user state when any input changes
   const onInputChange = (e) => 
   {
-    setUser({...user, [e.target.name]: e.target.value}); //Use computed property name to update specific field
+    const { name, value } = e.target;
+    setUser((prevUser) => ({ ...prevUser, [name]: value }));
   };
 
-  //Handle form submission
+  //Handle form submission asynchronously
   const onSubmit = async (e) => 
   {
-    e.preventDefault(); //Prevent default form submit behavior (page reload)
-    setError(null); //Reset error message
-    setSuccess(false); //Reset success message
+    e.preventDefault(); //Prevent default form submit behavior
+    setError(null);     //Clear previous errors
+    setSuccess(false);  //Reset success flag
 
-    //Trim whitespace from string inputs before sending
+    //Create trimmed user data, excluding password trimming
     const trimmedUser = 
     {
       firstName: user.firstName.trim(),
@@ -46,109 +46,103 @@ function CreateUser()
       email: user.email.trim(),
       phoneNumber: user.phoneNumber.trim(),
       homeAddress: user.homeAddress.trim(),
-      password: user.password, //Password is not trimmed to preserve exact input
+      password: user.password,
       role: user.role,
     };
 
-    setLoading(true); //Show loading state
+    setLoading(true); //Show loading spinner/state
 
     try 
     {
-      //Send POST request to backend API to create new user
-      await axios.post("http://localhost:8080/users", trimmedUser);
-      setSuccess(true); //Show success message on completion
-
-      //Redirect to homepage after 5 seconds
-      setTimeout(() => navigate("/"), 5000);
+      await axios.post("http://localhost:8080/users", trimmedUser); //Send POST request to API
+      setSuccess(true);                                             //Set success flag on successful registration
+      setTimeout(() => navigate("/"), 5000);                        //Redirect after 5 seconds
     } 
     
-    catch (err) 
+    catch(err) 
     {
-      //Handle error responses
+      //Handle errors from API or network
       if(err.response) 
       {
-        //Conflict error - user already exists
         if(err.response.status === 409) 
-        {
-          setError("User with this email or username already exists.");
-        } 
+          setError("User with this email or username already exists.");           //Conflict error
         
-        //Other backend-provided error messages
-        else if(err.response.data?.message) 
-        {
-          setError(err.response.data.message);
-        } 
-
-        //Generic HTTP error message
-        else 
-        {
-          setError(`Error: ${err.response.status} - ${err.response.statusText}`);
-        }
-      }
-
-      //Network or other errors without response
+        else if(err.response.data?.message)
+          setError(err.response.data.message);                                    //Show backend error message if available
+        
+        else
+          setError(`Error: ${err.response.status} - ${err.response.statusText}`); //Other HTTP errors
+      } 
+      
       else 
-      {
-        setError("Network error. Please check your connection.");
-      }
+        setError("Network error. Please check your connection."); //Network error fallback
     } 
     
     finally 
     {
-      setLoading(false); //Reset loading state regardless of success or error
+      setLoading(false);  //Turn off loading state
     }
   };
 
+  //Define metadata for form fields
+  const fields = [
+    { name: "firstName", label: "First Name", type: "text", required: true, maxLength: 30, minLength: 2, autoComplete: "given-name" },
+    { name: "lastName", label: "Last Name", type: "text", required: true, maxLength: 30, minLength: 2, autoComplete: "family-name" },
+    { name: "username", label: "Username", type: "text", required: true, maxLength: 20, minLength: 4, autoComplete: "username" },
+    { name: "email", label: "Email", type: "email", required: true, minLength: 5, autoComplete: "email" },
+    { name: "phoneNumber", label: "Phone Number", type: "tel", required: false, maxLength: 15, minLength: 7, autoComplete: "tel" },
+    { name: "homeAddress", label: "Home Address", type: "text", required: false, maxLength: 50, autoComplete: "street-address" },
+    { name: "password", label: "Password", type: "password", required: true, minLength: 6, maxLength: 50, autoComplete: "new-password" },
+  ];
+
   return (
-    <div className="container">
-      <div className="form-wrapper">
-        <h2 className="text-center">Register User</h2>
+    <div className="container"> {/* Container div */}
+      <div className="form-wrapper"> {/* Wrapper for form */}
+        <h2 className="text-center">Register User</h2> {/* Form title */}
 
-        {/*Show error message if error exists*/}
-        {error && <div className="alert alert-danger">{error}</div>}
-        
-        {/*Show success message if registration succeeded*/}
-        {success && (
-          <div className="alert alert-success">
-            Registration successful! Redirecting...
-          </div>
-        )}
+        {error && <div className="alert alert-danger">{error}</div>} {/* Display error message */}
+        {success && <div className="alert alert-success">Registration successful! Redirecting...</div>} {/* Display success message */}
 
-        <form onSubmit={onSubmit}>
-          {/*Map through form fields to generate input elements*/}
-          {[
-            {name: "firstName", label: "First Name", type: "text", required: true},
-            {name: "lastName", label: "Last Name", type: "text", required: true},
-            {name: "username", label: "Username", type: "text", required: true},
-            {name: "email", label: "Email", type: "email", required: true},
-            {name: "phoneNumber", label: "Phone Number", type: "tel"},
-            {name: "homeAddress", label: "Home Address", type: "text"},
-            {name: "password", label: "Password", type: "password", required: true},
-          ].map(({name, label, type, required}) => (
-            <div className="form-row" key={name}>
-              <label htmlFor={name}>{label}</label>
-              <input type={type} name={name} id={name} value={user[name]} onChange={onInputChange} required={required} placeholder={`Enter your ${label.toLowerCase()}`}
-              disabled={loading || success} minLength={name === "password" ? 6 : 4} maxLength={name === "firstName" ? 30 : 20}/>
+        <form onSubmit={onSubmit}> {/* Form element with submit handler */}
+          {fields.map(({ name, label, type, required, maxLength, minLength, autoComplete }) => (
+            <div className="form-row" key={name}> {/* Form row for each input */}
+              <label htmlFor={name}>{label}</label> {/* Input label */}
+              <input
+                type={type} //Input type
+                name={name} //Input name
+                id={name} //Input id
+                value={user[name]} //Controlled value from state
+                onChange={onInputChange} //Input change handler
+                required={required} //Required attribute
+                placeholder={`Enter your ${label.toLowerCase()}`} //Placeholder text
+                disabled={loading || success} //Disable input during loading or after success
+                minLength={minLength} //Minimum input length
+                maxLength={maxLength} //Maximum input length
+                autoComplete={autoComplete} //Autocomplete attribute
+              />
             </div>
           ))}
 
-          {/*Role select dropdown*/}
-          <div className="form-row">
+          <div className="form-row"> {/* Role selection */}
             <label htmlFor="role">Role</label>
-            <select name="role" id="role" value={user.role} onChange={onInputChange} requireddisabled={loading || success}>
+            <select
+              name="role"
+              id="role"
+              value={user.role}
+              onChange={onInputChange}
+              required
+              disabled={loading || success}
+            >
               <option value="">Select role</option>
               <option value="ADMIN">Admin</option>
               <option value="CUSTOMER">Customer</option>
-              <option value="WAREHOUSE_SUPERVISOR">Warehouse Supervisor</option>
-              <option value="SALES_CLERK">Sales Clerk</option>
+              <option value="USER">User</option>
             </select>
           </div>
 
-          {/*Submit button*/}
-          <div className="form-actions">
+          <div className="form-actions"> {/* Submit button container */}
             <button type="submit" className="btn" disabled={loading || success}>
-              {/*Show loading text or Register*/}
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Registering..." : "Register"} {/* Button text changes based on loading state */}
             </button>
           </div>
         </form>
@@ -157,4 +151,4 @@ function CreateUser()
   );
 }
 
-export default CreateUser; //Export component as default
+export default CreateUser;  //Export component

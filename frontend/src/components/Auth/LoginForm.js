@@ -1,6 +1,6 @@
-import React, { useState } from "react";                   //React and useState hook
-import { loginUser } from "../services/authService";       //Login API service
-import { useNavigate } from "react-router-dom";            //Navigation hook
+import React, { useState} from "react";                   //React and useState hook
+import {loginUser} from "../services/authService";       //Login API service
+import {useNavigate} from "react-router-dom";            //Navigation hook
 import '../../styles/styles.css';                        //Component styles
 
 const LoginForm = () => 
@@ -23,10 +23,8 @@ const LoginForm = () =>
       const role = roleMessage?.split(":")[1]?.trim().toUpperCase();  //Extract role
 
       //Validate response
-      if(!token || !userId || !role) 
-      {                     
+      if(!token || !userId || !role)                   
         throw new Error("Missing login data.");
-      }
 
       localStorage.setItem("token", token);                 //Save token
       localStorage.setItem("userId", userId);               //Save userId

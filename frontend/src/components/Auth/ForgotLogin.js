@@ -1,5 +1,5 @@
-import React, { useState } from "react"         //React and useState hook
-import { useNavigate } from "react-router-dom"  //Navigation hook
+import React, {useState} from "react"         //React and useState hook
+import {useNavigate} from "react-router-dom"  //Navigation hook
 import "../../styles/styles.css"           //Component styles
 
 export default function ForgotLogin() 
@@ -19,7 +19,7 @@ export default function ForgotLogin()
 
   const handleChange = (e) => 
   {
-    const { id, value } = e.target  //Get input id and value
+    const {id, value} = e.target  //Get input id and value
     setFormData((prev) => ({        //Update form data
       ...prev,
       [id]: value
@@ -52,7 +52,7 @@ export default function ForgotLogin()
       const response = await fetch("http://localhost:8080/auth/forgotLogin", 
       {
         method: "POST",                                 //POST request
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
       })
 
@@ -72,6 +72,7 @@ export default function ForgotLogin()
         setMessage("")
       }
     } 
+    
     catch                                         //Network/server error
     {
       setError("Network or server error")

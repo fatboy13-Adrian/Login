@@ -1,105 +1,97 @@
-package com.user.login.Service;
+package com.user.login.Service;                                                             //Package for service-level tests
+import com.user.login.DTO.Auth.AuthResponseDTO;                                             //Import DTO for authentication response
+import com.user.login.DTO.UserDTO;                                                          //Import DTO for user data transfer
+import com.user.login.Entity.User;                                                          //Import User entity class
+import com.user.login.Enum.Role;                                                            //Import enum for user roles
+import com.user.login.Exception.EmailAlreadyExistsException;                                //Import custom exception for duplicate emails
+import com.user.login.Exception.UserNotFoundException;                                      //Import custom exception for missing users
+import com.user.login.Exception.UsernameAlreadyExistsException;                             //Import custom exception for duplicate usernames
+import com.user.login.Mapper.UserMapper;                                                    //Import mapper to convert between User and UserDTO
+import com.user.login.Repository.UserRepository;                                            //Import repository interface for User entity
+import com.user.login.Security.JWT.JwtUtils;                                                //Import JWT utility for token generation
+import org.junit.jupiter.api.Test;                                                          //Import JUnit test annotation
+import org.junit.jupiter.api.extension.ExtendWith;                                          //Import JUnit extension to support Mockito
+import org.mockito.InjectMocks;                                                             //Import annotation to inject mocks into tested object
+import org.mockito.Mock;                                                                    //Import annotation to create mock objects
+import org.mockito.junit.jupiter.MockitoExtension;                                          //Import extension to enable Mockito in JUnit
+import org.springframework.security.access.AccessDeniedException;                           //Import exception for unauthorized access
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;     //Import Spring Security class for authentication tokens
+import org.springframework.security.core.Authentication;                                    //Import interface for authentication object
+import org.springframework.security.core.authority.SimpleGrantedAuthority;                  //Import class for user roles/authorities
+import org.springframework.security.core.context.SecurityContext;                           //Import Spring Security context class
+import org.springframework.security.core.context.SecurityContextHolder;                     //Import Spring Security holder for context
+import org.springframework.security.crypto.password.PasswordEncoder;                        //Import password encoder interface
+import java.util.List;                                                                      //Import List interface
+import java.util.Optional;                                                                  //Import Optional for null-safe values
+import static org.junit.jupiter.api.Assertions.*;                                           //Import static assert methods
+import static org.mockito.ArgumentMatchers.*;                                               //Import static matcher methods for Mockito
+import static org.mockito.Mockito.*;                                                        //Import static Mockito utility methods
 
-import com.user.login.DTO.Auth.AuthResponseDTO;
-import com.user.login.DTO.UserDTO;
-import com.user.login.Entity.User;
-import com.user.login.Enum.Role;
-import com.user.login.Exception.EmailAlreadyExistsException;
-import com.user.login.Exception.UserNotFoundException;
-import com.user.login.Exception.UsernameAlreadyExistsException;
-import com.user.login.Mapper.UserMapper;
-import com.user.login.Repository.UserRepository;
-import com.user.login.Security.JWT.JwtUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+@ExtendWith(MockitoExtension.class) //Extend test class with Mockito support
+class UserServiceTest 
+{
+    @Mock private JwtUtils jwtUtils;                //Mock for JWT utility
+    @Mock private UserRepository userRepository;    //Mock for User repository
+    @Mock private UserMapper userMapper;            //Mock for User-DTO mapper
+    @Mock private PasswordEncoder passwordEncoder;  //Mock for password encoder
+    @InjectMocks private UserService userService;   //Inject mocks into the service under test
 
-import java.util.List;
-import java.util.Optional;
+    //Utility method to mock authentication with roles
+    private void mockAuthentication(String username, String... roles) 
+    {
+        //Create authorities from roles
+        List<SimpleGrantedAuthority> authorities = List.of(roles).stream().map(SimpleGrantedAuthority::new).toList();
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class UserServiceTest {
-
-    @Mock
-    private JwtUtils jwtUtils;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @InjectMocks
-    private UserService userService;
-
-    // Helper method to mock authentication context with a given username
-    private void mockAuthentication(String username) {
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getName()).thenReturn(username);
-
+        //Create authentication token
+        Authentication authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
+        
+        //Mock the security context
         SecurityContext securityContext = mock(SecurityContext.class);
+        
+        //Define authentication for security context
         when(securityContext.getAuthentication()).thenReturn(authentication);
-
+        
+        //Set mocked context to current thread
         SecurityContextHolder.setContext(securityContext);
     }
 
-    @Test
-    void createUser_shouldThrowException_ifUsernameExists() {
-        UserDTO dto = new UserDTO();
-        dto.setUsername("existingUser");
-        dto.setEmail("newemail@example.com");
-
-        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(true);
-
-        assertThrows(UsernameAlreadyExistsException.class, () -> userService.createUser(dto));
-
-        verify(userRepository, never()).save(any());
+    @Test   //Test if UsernameAlreadyExistsException is thrown
+    void createUser_shouldThrowException_ifUsernameExists() 
+    {
+        UserDTO dto = new UserDTO();                                                                        //Create DTO
+        dto.setUsername("existingUser");                                                            //Set username
+        dto.setEmail("newemail@example.com");                                                           //Set email
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(true);                      //Mock existing username
+        assertThrows(UsernameAlreadyExistsException.class, () -> userService.createUser(dto));  //Expect exception
+        verify(userRepository, never()).save(any());                                                        //Ensure save is not called
     }
 
-    @Test
-    void createUser_shouldThrowException_ifEmailExists() {
-        UserDTO dto = new UserDTO();
-        dto.setUsername("newUser");
-        dto.setEmail("existingemail@example.com");
-
-        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
-        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(true);
-
-        assertThrows(EmailAlreadyExistsException.class, () -> userService.createUser(dto));
-
-        verify(userRepository, never()).save(any());
+    @Test   //Test if EmailAlreadyExistsException is thrown
+    void createUser_shouldThrowException_ifEmailExists() 
+    {
+        UserDTO dto = new UserDTO();                                                                    //Create DTO
+        dto.setUsername("newUser");                                                             //Set username
+        dto.setEmail("existingemail@example.com");                                                  //Set email
+        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);                 //Username doesn't exist
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(true);                        //Email exists
+        assertThrows(EmailAlreadyExistsException.class, () -> userService.createUser(dto)); //Expect exception
+        verify(userRepository, never()).save(any());                                                    //Ensure save is not called
     }
 
-    @Test
-    void createUser_shouldEncodePasswordAndSaveUser() {
-        UserDTO dto = new UserDTO();
-        dto.setUsername("newUser");
-        dto.setEmail("newuser@example.com");
-        dto.setPassword("plainPassword");
+    @Test   //Test successful user creation
+    void createUser_shouldEncodePasswordAndSaveUser() 
+    {
+        UserDTO dto = new UserDTO();                //Create DTO
+        dto.setUsername("newUser");         //Set username
+        dto.setEmail("newuser@example.com");    //Set email
+        dto.setPassword("plainPassword");   //Set password
+        User userEntity = new User();               //Mock user entity
+        User savedUser = new User();                //Mock saved user
+        savedUser.setUserId(1L);            //Set saved user ID
+        UserDTO savedDto = new UserDTO();           //Create returned DTO
+        savedDto.setUserId(1L);             //Set DTO user ID
 
-        User userEntity = new User();
-        User savedUser = new User();
-        savedUser.setUserId(1L);
-        UserDTO savedDto = new UserDTO();
-        savedDto.setUserId(1L);
-
+        //Mock repository and mapper interactions
         when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
         when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
         when(passwordEncoder.encode("plainPassword")).thenReturn("encodedPassword");
@@ -107,196 +99,167 @@ class UserServiceTest {
         when(userRepository.save(userEntity)).thenReturn(savedUser);
         when(userMapper.toDTO(savedUser)).thenReturn(savedDto);
 
-        UserDTO result = userService.createUser(dto);
-
-        assertEquals(1L, result.getUserId());
-        verify(passwordEncoder).encode("plainPassword");
-        verify(userRepository).save(userEntity);
+        UserDTO result = userService.createUser(dto);                   //Call createUser
+        assertEquals(1L, result.getUserId());                   //Assert user ID
+        verify(passwordEncoder).encode("plainPassword");    //Verify password encoding
+        verify(userRepository).save(userEntity);                        //Verify user saved
     }
 
-    @Test
-void getUser_shouldReturnUserDTO_ifAuthorizedAsOwner() {
-    Long userId = 1L;
-    String username = "user1";
-
-    User user = new User();
-    user.setUserId(userId);
-    user.setUsername(username);
-
-    UserDTO userDTO = new UserDTO();
-    userDTO.setUserId(userId);
-    userDTO.setUsername(username);
-
-    mockAuthentication(username);
-
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));  // <--- ADD THIS
-    when(userMapper.toDTO(user)).thenReturn(userDTO);
-
-    UserDTO result = userService.getUser(userId);
-
-    assertEquals(userId, result.getUserId());
-    assertEquals(username, result.getUsername());
-}
-
-
- @Test
-void getUser_shouldThrowAccessDeniedException_ifNotOwnerOrAdmin() {
-    Long userId = 1L;
-
-    mockAuthentication("otherUser");
-
-    User user = new User();
-    user.setUserId(userId);
-    user.setUsername("user1");
-
-    User otherUser = new User();
-    otherUser.setUsername("otherUser");
-
-    when(userRepository.findByUsername("otherUser")).thenReturn(Optional.of(otherUser)); // MUST mock this
-
-    assertThrows(AccessDeniedException.class, () -> userService.getUser(userId));
-}
-
-
-
-    @Test
-    void getUsers_shouldReturnAllUsers_ifAdmin() {
-        mockAuthentication("admin");
-
-        User user1 = new User();
-        User user2 = new User();
-        UserDTO dto1 = new UserDTO();
-        UserDTO dto2 = new UserDTO();
-
-        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
-        when(userMapper.toDTO(user1)).thenReturn(dto1);
-        when(userMapper.toDTO(user2)).thenReturn(dto2);
-
-        List<UserDTO> result = userService.getUsers();
-
-        assertEquals(2, result.size());
-        verify(userRepository).findAll();
+    @Test   //Test user retrieval when owner is authorized
+    void getUser_shouldReturnUserDTO_ifAuthorizedAsOwner() 
+    {
+        Long userId = 1L;                                                               //User ID
+        String username = "user1";                                                      //Username
+        User user = new User();                                                         //Create user entity
+        user.setUserId(userId);                                                         //Set ID
+        user.setUsername(username);                                                     //Set username
+        UserDTO userDTO = new UserDTO();                                                //Create DTO
+        userDTO.setUserId(userId);                                                      //Set ID
+        userDTO.setUsername(username);                                                  //Set username
+        mockAuthentication(username, "ROLE_CUSTOMER");                          //Authenticate as owner
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));            //Mock findById
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));    //Mock findByUsername
+        when(userMapper.toDTO(user)).thenReturn(userDTO);                               //Map to DTO
+        UserDTO result = userService.getUser(userId);                                   //Call getUser
+        assertEquals(userId, result.getUserId());                                       //Assert ID
+        assertEquals(username, result.getUsername());                                   //Assert username
     }
 
-    @Test
-    void getUsers_shouldThrowAccessDeniedException_ifNotAdmin() {
-        mockAuthentication("someUser");
-
-        assertThrows(AccessDeniedException.class, () -> userService.getUsers());
+    @Test   //Test access denied when user is not owner or admin   
+    void getUser_shouldThrowAccessDeniedException_ifNotOwnerOrAdmin() 
+    {
+        Long userId = 1L;                                                                               //Target user ID
+        mockAuthentication("otherUser", "ROLE_CUSTOMER");                               //Mock unauthorized user
+        User user = new User();                                                                         //Target user
+        user.setUserId(userId);                                                                         //Set ID
+        user.setUsername("user1");                                                              //Set username
+        User otherUser = new User();                                                                    //Logged-in user
+        otherUser.setUsername("otherUser");                                                     //Set username
+        when(userRepository.findByUsername("otherUser")).thenReturn(Optional.of(otherUser));    //Mock find
+        assertThrows(AccessDeniedException.class, () -> userService.getUser(userId));       //Expect denial
     }
 
-    @Test
-void updateUser_shouldUpdateUserAndReturnAuthResponse_ifAuthorized() {
-    Long userId = 1L;
-    String username = "user1";
-
-    mockAuthentication(username);
-
-    UserDTO updateDto = new UserDTO();
-    updateDto.setFirstName("John");
-    updateDto.setPassword("newPassword");
-
-    User user = new User();
-    user.setUserId(userId);
-    user.setUsername(username);
-    user.setRole(Role.CUSTOMER);
-
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));  // <--- Add this
-    when(passwordEncoder.encode("newPassword")).thenReturn("encodedPassword");
-    when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    when(userMapper.toDTO(any(User.class))).thenReturn(updateDto);
-    when(jwtUtils.generateToken(eq(username), anyList())).thenReturn("jwtToken");
-
-    AuthResponseDTO response = userService.updateUser(userId, updateDto);
-
-    assertNotNull(response);
-    assertEquals("User updated successfully", response.getMessage());
-    assertEquals("jwtToken", response.getToken());
-    verify(passwordEncoder).encode("newPassword");
-    verify(userRepository).save(any(User.class));
-}
-
-    @Test
-void updateUser_shouldThrowAccessDeniedException_ifNotOwner() {
-    Long userId = 1L;
-    String authenticatedUsername = "otherUser";
-    mockAuthentication(authenticatedUsername);
-
-    // Mock the authenticated user returned by findByUsername
-    User otherUser = new User();
-    otherUser.setUsername(authenticatedUsername);
-    when(userRepository.findByUsername(authenticatedUsername)).thenReturn(Optional.of(otherUser));
-
-    UserDTO updateDto = new UserDTO();
-
-    assertThrows(AccessDeniedException.class, () -> userService.updateUser(userId, updateDto));
-}
-
-
-    @Test
-    void deleteUser_shouldDeleteUser_ifAdminAndUserExists() {
-        Long userId = 1L;
-        mockAuthentication("admin");
-
-        when(userRepository.existsById(userId)).thenReturn(true);
-
-        userService.deleteUser(userId);
-
-        verify(userRepository).deleteById(userId);
+    @Test   //Test fetching users as admin
+    void getUsers_shouldReturnAllUsers_ifAdmin() 
+    {
+        mockAuthentication("admin", "ROLE_ADMIN");  //Authenticate as admin
+        User user1 = new User();                                        //User 1
+        User user2 = new User();                                        //User 2
+        UserDTO dto1 = new UserDTO();                                   //DTO 1
+        UserDTO dto2 = new UserDTO();                                   //DTO 2
+        when(userRepository.findAll()).thenReturn(List.of(user1, user2));   //Mock findAll
+        when(userMapper.toDTO(user1)).thenReturn(dto1);                     //Map user1
+        when(userMapper.toDTO(user2)).thenReturn(dto2);                     //Map user2
+        List<UserDTO> result = userService.getUsers();                      //Call getUsers
+        assertEquals(2, result.size());                             //Assert list size
+        verify(userRepository).findAll();                                   //Verify repository call
     }
 
-    @Test
-    void deleteUser_shouldThrowUserNotFoundException_ifUserDoesNotExist() {
-        Long userId = 1L;
-        mockAuthentication("admin");
-
-        when(userRepository.existsById(userId)).thenReturn(false);
-
-        assertThrows(UserNotFoundException.class, () -> userService.deleteUser(userId));
+    @Test   //Test access denied when non-admin calls getUsers
+    void getUsers_shouldThrowAccessDeniedException_ifNotAdmin() 
+    {
+        mockAuthentication("someUser", "ROLE_CUSTOMER");                        //Mock unauthorized user
+        assertThrows(AccessDeniedException.class, () -> userService.getUsers());    //Expect denial
     }
 
-    @Test
-    void deleteUser_shouldThrowAccessDeniedException_ifNotAdmin() {
-        Long userId = 1L;
-        mockAuthentication("user");
+    @Test   //Test authorized user updating their own data
+    void updateUser_shouldUpdateUserAndReturnAuthResponse_ifAuthorized() 
+    {
+        Long userId = 1L;                                           //User ID
+        String username = "user1";                                  //Username
+        mockAuthentication(username, "ROLE_CUSTOMER");  //Authenticate
+        UserDTO updateDto = new UserDTO();                      //Create update DTO
+        updateDto.setFirstName("John");             //Update name
+        updateDto.setPassword("newPassword");           //Update password
+        User user = new User();                                 //Existing user
+        user.setUserId(userId);                                 //Set ID
+        user.setUsername(username);                             //Set username
+        user.setRole(Role.CUSTOMER);                            //Set role
 
-        assertThrows(AccessDeniedException.class, () -> userService.deleteUser(userId));
-    }
-
-    @Test
-    void getCurrentUser_shouldReturnCurrentUserDTO() {
-        String username = "user1";
-        mockAuthentication(username);
-
-        User user = new User();
-        user.setUsername(username);
-
-        UserDTO userDTO = new UserDTO();
-
+        //Mock repository and utility calls
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(userMapper.toDTO(user)).thenReturn(userDTO);
+        when(passwordEncoder.encode("newPassword")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userMapper.toDTO(any(User.class))).thenReturn(updateDto);
+        when(jwtUtils.generateToken(eq(username), anyList())).thenReturn("jwtToken");
 
-        UserDTO currentUser = userService.getCurrentUser();
-
-        assertNotNull(currentUser);
+        AuthResponseDTO response = userService.updateUser(userId, updateDto);       //Call update
+        assertNotNull(response);                                                    //Assert not null
+        assertEquals("User updated successfully", response.getMessage());   //Assert message
+        assertEquals("jwtToken", response.getToken());                      //Assert token
+        verify(passwordEncoder).encode("newPassword");                  //Verify password encoded
+        verify(userRepository).save(any(User.class));                           //Verify saved
     }
 
-    @Test
-    void getAuthenticatedUsername_shouldReturnUsername_whenAuthenticated() {
-        String username = "user1";
-        mockAuthentication(username);
+    @Test   //Test admin role update
+    void updateUser_shouldAllowAdminToUpdateRoles() 
+    {
+        Long userId = 1L;               //Target ID
+        String adminUsername = "admin"; //Admin user
+        mockAuthentication(adminUsername, "ROLE_ADMIN");    //Authenticate admin
+        UserDTO updateDto = new UserDTO();                          //Create DTO
+        updateDto.setRole(Role.ADMIN);                              //Set role
+        User user = new User();                                     //Target user
+        user.setUserId(userId);                                     //Set ID
+        user.setUsername("user1");                          //Set username
+        user.setRole(Role.CUSTOMER);                                //Set old role
 
-        String actual = userService.getAuthenticatedUsername();
-
-        assertEquals(username, actual);
+        //Mock interactions
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername(adminUsername)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userMapper.toDTO(any(User.class))).thenReturn(updateDto);
+        when(jwtUtils.generateToken(anyString(), anyList())).thenReturn("jwtToken");
+        AuthResponseDTO response = userService.updateUser(userId, updateDto);   //Call update
+        assertEquals(Role.ADMIN, user.getRole());                               //Assert role change
+        assertEquals("jwtToken", response.getToken());                  //Assert token
+        verify(userRepository).save(user);                                      //Verify save
     }
 
-    @Test
-    void getAuthenticatedUsername_shouldThrowAccessDeniedException_whenNotAuthenticated() {
-        SecurityContextHolder.clearContext();
+    @Test   //Test access denial on unauthorized update
+    void updateUser_shouldThrowAccessDeniedException_ifNotOwnerOrAdmin() 
+    {
+        Long userId = 1L;                                           //Target user
+        String otherUsername = "otherUser";                         //Not owner
+        mockAuthentication(otherUsername, "ROLE_CUSTOMER"); //Authenticate
+        User userToUpdate = new User();                             //Target user
+        userToUpdate.setUserId(userId);                             //Set ID
+        userToUpdate.setUsername("user1");                  //Set username
+        User otherUser = new User();                                //Logged-in user
+        otherUser.setUsername(otherUsername);                       //Set username
 
-        assertThrows(AccessDeniedException.class, () -> userService.getAuthenticatedUsername());
+        //Mock find methods
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userToUpdate));
+        when(userRepository.findByUsername(otherUsername)).thenReturn(Optional.of(otherUser));
+
+        UserDTO updateDto = new UserDTO();  //Empty update
+        assertThrows(AccessDeniedException.class, () -> userService.updateUser(userId, updateDto)); //Expect denial
+    }
+
+    @Test   //Test user deletion by admin
+    void deleteUser_shouldDeleteUser_ifAdminAndUserExists() 
+    {
+        Long userId = 1L;                                               //ID to delete
+        mockAuthentication("admin", "ROLE_ADMIN");      //Admin auth
+        when(userRepository.existsById(userId)).thenReturn(true);   //User exists
+        userService.deleteUser(userId);                                 //Call delete
+        verify(userRepository).deleteById(userId);                      //Verify deletion
+    }
+
+    @Test   //Test deletion when user does not exist
+    void deleteUser_shouldThrowUserNotFoundException_ifUserDoesNotExist() 
+    {
+        Long userId = 1L;                                                   //ID to delete
+        mockAuthentication("admin", "ROLE_ADMIN");      //Admin auth
+        when(userRepository.existsById(userId)).thenReturn(false);  //User not found
+        assertThrows(UserNotFoundException.class, () -> userService.deleteUser(userId));    //Expect exception
+    }
+
+    @Test   //Test deletion by unauthorized user
+    void deleteUser_shouldThrowAccessDeniedException_ifNotAdmin() 
+    {
+        mockAuthentication("user1", "ROLE_CUSTOMER");   //Not admin
+        assertThrows(AccessDeniedException.class, () -> userService.deleteUser(1L));    //Expect denial
     }
 }
